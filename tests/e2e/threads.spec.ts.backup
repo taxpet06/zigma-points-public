@@ -1,0 +1,166 @@
+// THRD-01, THRD-03: automated. THRD-02: test.skip — Uploadthing media upload requires real UPLOADTHING_TOKEN.
+// Note: THRD-01 and THRD-03 tests are expected to FAIL until Wave 2 builds the UI (post detail page + reply components).
+
+import { test, expect } from "@playwright/test"
+
+test.describe.configure({ mode: "serial" })
+
+const REPLY_AUTHOR = {
+  name: "Reply Author",
+  email: `replyauthor-${Date.now()}@example.com`,
+  password: "ReplyAuthor123!",
+  username: `replyauthor${Date.now()}`.slice(0, 20),
+}
+
+const REPLY_TARGET = {
+  name: "Reply Target",
+  email: `replytarget-${Date.now()}@example.com`,
+  password: "ReplyTarget123!",
+  username: `replytarget${Date.now()}`.slice(0, 20),
+}
+
+const POST_TITLE = `Thread test ${Date.now()}`
+
+let seedPostId: string | null = null
+
+async function signUp(page: import("@playwright/test").Page, user: typeof REPLY_AUTHOR) {
+  await page.goto("/sign-up")
+  await page.getByLabel("Name").fill(user.name)
+  await page.getByLabel("Email").fill(user.email)
+  await page.getByLabel("Password").fill(user.password)
+  await page.getByRole("button", { name: /create account/i }).click()
+  await expect(page).toHaveURL("/", { timeout: 10000 })
+}
+
+async function signIn(page: import("@playwright/test").Page, user: typeof REPLY_AUTHOR) {
+  await page.goto("/sign-in")
+  await page.getByLabel("Email").fill(user.email)
+  await page.getByLabel("Password").fill(user.password)
+  await page.getByRole("button", { name: /sign in/i }).click()
+  await expect(page).toHaveURL("/", { timeout: 10000 })
+}
+
+async function setUsername(page: import("@playwright/test").Page, username: string) {
+  await page.goto("/profile/edit")
+  const usernameField = page.getByLabel(/username/i)
+  await usernameField.clear()
+  await usernameField.fill(username)
+  await page.getByRole("button", { name: /claim username/i }).click()
+  // Wait for redirect to /u/[username] after successful claim
+  await page.waitForURL(/\/u\//, { timeout: 10000 })
+}
+
+test.describe("Setup — provision test users and a post", () => {
+  test("create reply author user with username", async ({ page }) => {
+    await signUp(page, REPLY_AUTHOR)
+    await setUsername(page, REPLY_AUTHOR.username)
+  })
+
+  test("create reply target user with username", async ({ page }) => {
+    await signUp(page, REPLY_TARGET)
+    await setUsername(page, REPLY_TARGET.username)
+  })
+
+  test("author creates a post to use as thread context", async ({ page }) => {
+    await signIn(page, REPLY_AUTHOR)
+    await page.goto("/")
+
+    await page.getByRole("button", { name: /create post/i }).first().click()
+    await expect(page.locator('[role="dialog"]')).toBeVisible()
+
+    await page.getByPlaceholder("Search users…").fill(REPLY_TARGET.username.slice(0, 6))
+    await page.waitForTimeout(500)
+    await page.getByText(`@${REPLY_TARGET.username}`).click()
+
+    await page.getByPlaceholder("What are you nominating them for?").fill(POST_TITLE)
+    await page.getByPlaceholder(/Describe/).fill("E2E thread test explanation.")
+    await page.locator('input[type="number"]').fill("5")
+
+    await page.getByRole("button", { name: /submit post/i }).click()
+    await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(POST_TITLE).first()).toBeVisible({ timeout: 10000 })
+
+    // Extract the post ID from the reply count link (href="/post/<id>") on the feed card
+    const postCard = page.locator("div.rounded-lg.border").filter({ hasText: POST_TITLE }).first()
+    const replyLink = postCard.locator('a[href^="/post/"]').first()
+    const href = await replyLink.getAttribute("href")
+    if (href) {
+      seedPostId = href.replace("/post/", "")
+    }
+  })
+})
+
+test.describe("THRD-01: Reply to a post", () => {
+  test("user can submit a reply and see it in the thread", async ({ page }) => {
+    await signIn(page, REPLY_AUTHOR)
+
+    // Navigate to the post detail page — uses seedPostId if available, falls back to feed link
+    if (seedPostId) {
+      await page.goto(`/post/${seedPostId}`)
+    } else {
+      await page.goto("/")
+      const postCard = page.locator("div.rounded-lg.border").filter({ hasText: POST_TITLE }).first()
+      const replyLink = postCard.locator('a[href^="/post/"]').first()
+      await replyLink.click()
+    }
+
+    // Compose box should be visible with placeholder "Write a reply…"
+    const compose = page.getByPlaceholder("Write a reply…")
+    await expect(compose).toBeVisible({ timeout: 10000 })
+
+    // Type a reply and submit
+    const replyText = `THRD-01 reply ${Date.now()}`
+    await compose.fill(replyText)
+    await page.getByRole("button", { name: /post reply/i }).click()
+
+    // Reply should appear in the thread below
+    await expect(page.getByText(replyText)).toBeVisible({ timeout: 10000 })
+  })
+})
+
+test.describe("THRD-03: Reply to a reply (nested)", () => {
+  test("user can reply to a reply and a 'Replying to' banner appears", async ({ page }) => {
+    await signIn(page, REPLY_AUTHOR)
+
+    // Navigate to the post detail page
+    if (seedPostId) {
+      await page.goto(`/post/${seedPostId}`)
+    } else {
+      await page.goto("/")
+      const postCard = page.locator("div.rounded-lg.border").filter({ hasText: POST_TITLE }).first()
+      const replyLink = postCard.locator('a[href^="/post/"]').first()
+      await replyLink.click()
+    }
+
+    // Post a top-level reply first
+    const compose = page.getByPlaceholder("Write a reply…")
+    await expect(compose).toBeVisible({ timeout: 10000 })
+    const topLevelReply = `THRD-03 top-level ${Date.now()}`
+    await compose.fill(topLevelReply)
+    await page.getByRole("button", { name: /post reply/i }).click()
+    await expect(page.getByText(topLevelReply)).toBeVisible({ timeout: 10000 })
+
+    // Click "Reply" on that reply card to trigger nested context
+    const replyCard = page.locator("div.rounded-lg.border").filter({ hasText: topLevelReply }).first()
+    await replyCard.getByRole("button", { name: /^reply to/i }).click()
+
+    // "Replying to" banner should appear
+    await expect(page.getByText(/Replying to/i)).toBeVisible({ timeout: 5000 })
+
+    // Post the nested reply
+    const nestedReply = `THRD-03 nested ${Date.now()}`
+    await compose.fill(nestedReply)
+    await page.getByRole("button", { name: /post reply/i }).click()
+
+    // Nested reply should appear in the thread
+    await expect(page.getByText(nestedReply)).toBeVisible({ timeout: 10000 })
+  })
+})
+
+test.describe("THRD-02: Media attachment on reply", () => {
+  // eslint-disable-next-line playwright/no-skipped-test
+  test.skip("THRD-02: user can attach media to a reply — manual only (requires real UPLOADTHING_TOKEN in test env)", async () => {
+    // Manual: navigate to /post/[id], use UploadButton in the ReplyCompose box to upload an image,
+    // submit the reply, verify the reply appears in the thread with an <img> or <video> element.
+  })
+})

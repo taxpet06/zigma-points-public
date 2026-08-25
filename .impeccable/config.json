@@ -1,0 +1,11 @@
+{
+  "detector": {
+    "ignoreRules": [
+      "border-accent-on-rounded"
+    ],
+    "ignoreFiles": [
+      "src/components/cosmetics/cosmetics.css"
+    ],
+    "ignoreValues": []
+  }
+}

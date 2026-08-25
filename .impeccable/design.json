@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-24T00:00:00.000Z",
+  "title": "Design System: Zigma Points",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(0.145 0 0)",
+        "tonalRamp": [
+          "oklch(0.10 0 0)",
+          "oklch(0.145 0 0)",
+          "oklch(0.205 0 0)",
+          "oklch(0.30 0 0)",
+          "oklch(0.44 0 0)",
+          "oklch(0.56 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.92 0 0)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Pure Surface",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.22 0 0)",
+          "oklch(0.35 0 0)",
+          "oklch(0.55 0 0)",
+          "oklch(0.70 0 0)",
+          "oklch(0.85 0 0)",
+          "oklch(0.97 0 0)",
+          "oklch(1 0 0)"
+        ]
+      },
+      "interactive": {
+        "role": "primary",
+        "displayName": "Interactive Dark",
+        "canonical": "oklch(0.205 0 0)",
+        "tonalRamp": [
+          "oklch(0.10 0 0)",
+          "oklch(0.145 0 0)",
+          "oklch(0.205 0 0)",
+          "oklch(0.30 0 0)",
+          "oklch(0.44 0 0)",
+          "oklch(0.56 0 0)",
+          "oklch(0.71 0 0)",
+          "oklch(0.92 0 0)"
+        ]
+      },
+      "semantic-award": {
+        "role": "success",
+        "displayName": "Award Emerald",
+        "canonical": "#059669",
+        "tonalRamp": [
+          "oklch(0.22 0.09 162)",
+          "oklch(0.30 0.12 162)",
+          "oklch(0.40 0.15 162)",
+          "oklch(0.50 0.16 162)",
+          "oklch(0.60 0.17 162)",
+          "oklch(0.70 0.14 162)",
+          "oklch(0.82 0.09 162)",
+          "oklch(0.94 0.04 162)"
+        ]
+      },
+      "semantic-deduct": {
+        "role": "destructive",
+        "displayName": "Deduct Red",
+        "canonical": "oklch(0.577 0.245 27.325)",
+        "tonalRamp": [
+          "oklch(0.20 0.14 27)",
+          "oklch(0.30 0.19 27)",
+          "oklch(0.40 0.22 27)",
+          "oklch(0.50 0.24 27)",
+          "oklch(0.577 0.245 27)",
+          "oklch(0.68 0.20 27)",
+          "oklch(0.80 0.13 27)",
+          "oklch(0.93 0.05 27)"
+        ]
+      },
+      "semantic-pending": {
+        "role": "warning",
+        "displayName": "Pending Amber",
+        "canonical": "#d97706",
+        "tonalRamp": [
+          "oklch(0.25 0.10 70)",
+          "oklch(0.35 0.14 70)",
+          "oklch(0.45 0.17 70)",
+          "oklch(0.55 0.19 70)",
+          "oklch(0.65 0.20 70)",
+          "oklch(0.75 0.17 70)",
+          "oklch(0.86 0.11 70)",
+          "oklch(0.95 0.04 70)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Body",
+        "purpose": "Explanations, reply content, longer prose. Cap at 65ch. Apply text-wrap: pretty."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Post titles, modal headings, section labels. Ceiling: 1.25rem."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Author names, badge text, button labels, form labels. The workhorse weight."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "ZP balance in the header, tabular numeric display. tabular-nums feature active."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay-lift",
+        "value": "0 8px 32px oklch(0 0 0 / 0.12)",
+        "purpose": "Modals and dropdown menus only. Ambient and diffuse. Not applied to post cards."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "State transitions: hover, focus, active changes."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0, 0, 0.2, 1)",
+        "purpose": "Entrance transitions: dropdown open, modal appear."
+      },
+      {
+        "name": "duration-micro",
+        "value": "150ms",
+        "purpose": "Button hover, focus ring, icon swap. Below perceptual threshold."
+      },
+      {
+        "name": "duration-standard",
+        "value": "200ms",
+        "purpose": "Color transitions, border changes, opacity shifts."
+      },
+      {
+        "name": "duration-enter",
+        "value": "250ms",
+        "purpose": "Dropdown/modal entrance. Long enough to orient, short enough to not block."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action button. Dark charcoal fill, white text. Used for Create Post and primary modal actions.",
+      "html": "<button class=\"ds-btn-primary\">Create Post</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 8px 16px; background: oklch(0.205 0 0); color: oklch(1 0 0); font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1.25; border: none; border-radius: 8px; cursor: pointer; transition: background 200ms cubic-bezier(0.4, 0, 0.2, 1); outline: none; } .ds-btn-primary:hover { background: oklch(0.205 0 0 / 0.9); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(1 0 0), 0 0 0 4px oklch(0.708 0 0); } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; } @media (prefers-reduced-motion: reduce) { .ds-btn-primary { transition: none; } }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action. White fill, subtle border, ink text. Paired with Primary for non-destructive secondary actions.",
+      "html": "<button class=\"ds-btn-outline\">Cancel</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 8px 16px; background: oklch(1 0 0); color: oklch(0.145 0 0); font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border: 1px solid oklch(0.922 0 0); border-radius: 8px; cursor: pointer; transition: background 200ms cubic-bezier(0.4, 0, 0.2, 1); outline: none; } .ds-btn-outline:hover { background: oklch(0.97 0 0); } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(1 0 0), 0 0 0 4px oklch(0.708 0 0); } .ds-btn-outline:disabled { opacity: 0.5; pointer-events: none; } @media (prefers-reduced-motion: reduce) { .ds-btn-outline { transition: none; } }"
+    },
+    {
+      "name": "Agree Vote Button (active)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Vote button in the active Agree state. Dark fill, thumbs-up icon + count. Full-fill is mandatory — no tint, no border-only treatment.",
+      "html": "<button class=\"ds-vote-agree-active\" aria-pressed=\"true\" aria-label=\"Agree (3 votes)\"><svg class=\"ds-vote-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 10v12\"/><path d=\"M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z\"/></svg>Agree (3)</button>",
+      "css": ".ds-vote-agree-active { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 6px 12px; background: oklch(0.205 0 0); color: oklch(1 0 0); font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-vote-agree-active:hover { background: oklch(0.205 0 0 / 0.9); } .ds-vote-agree-active:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(1 0 0), 0 0 0 4px oklch(0.708 0 0); } .ds-vote-icon { width: 16px; height: 16px; flex-shrink: 0; } @media (prefers-reduced-motion: reduce) { .ds-vote-agree-active { transition: none; } }"
+    },
+    {
+      "name": "Disagree Vote Button (active)",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Vote button in the active Disagree state. Red fill, thumbs-down icon + count.",
+      "html": "<button class=\"ds-vote-disagree-active\" aria-pressed=\"true\" aria-label=\"Disagree (1 vote)\"><svg class=\"ds-vote-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M17 14V2\"/><path d=\"M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z\"/></svg>Disagree (1)</button>",
+      "css": ".ds-vote-disagree-active { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 6px 12px; background: oklch(0.577 0.245 27.325); color: oklch(1 0 0); font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-vote-disagree-active:hover { background: oklch(0.577 0.245 27.325 / 0.9); } .ds-vote-disagree-active:focus-visible { outline: none; box-shadow: 0 0 0 2px oklch(1 0 0), 0 0 0 4px oklch(0.708 0 0); } .ds-vote-icon { width: 16px; height: 16px; flex-shrink: 0; } @media (prefers-reduced-motion: reduce) { .ds-vote-disagree-active { transition: none; } }"
+    },
+    {
+      "name": "Post Card",
+      "kind": "card",
+      "refersTo": "card-post",
+      "description": "The core feed display unit. Award post example with pending state. Must be scannable in under two seconds.",
+      "html": "<article class=\"ds-post-card\"><div class=\"ds-post-card__header\"><span class=\"ds-badge-award\"><svg class=\"ds-badge-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"16 12 12 8 8 12\"/><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"8\"/></svg>Award</span><span class=\"ds-post-card__amount\">+10 ZP</span><span class=\"ds-post-card__status ds-post-card__status--pending\"><svg class=\"ds-status-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/></svg>Pending</span></div><div class=\"ds-post-card__meta\"><span class=\"ds-post-card__names\"><strong>alice</strong> → <strong>bob</strong></span></div><div class=\"ds-post-card__body\"><p class=\"ds-post-card__title\">Stayed late to fix the deploy</p><p class=\"ds-post-card__time\">2 hours ago</p></div></article>",
+      "css": ".ds-post-card { background: oklch(1 0 0); border: 1px solid oklch(0.922 0 0); border-radius: 10px; padding: 0; font-family: Inter, system-ui, sans-serif; overflow: hidden; } .ds-post-card__header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 16px 16px 12px; } .ds-post-card__amount { font-size: 0.875rem; font-weight: 600; color: oklch(0.145 0 0); } .ds-post-card__status { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 0.875rem; } .ds-post-card__status--pending { color: #d97706; } .ds-post-card__meta { padding: 0 16px 0; } .ds-post-card__names { font-size: 0.875rem; color: oklch(0.556 0 0); } .ds-post-card__names strong { color: oklch(0.145 0 0); font-weight: 500; } .ds-post-card__body { padding: 8px 16px 16px; } .ds-post-card__title { font-size: 1rem; font-weight: 600; color: oklch(0.145 0 0); margin: 0 0 4px; } .ds-post-card__time { font-size: 0.875rem; color: oklch(0.556 0 0); margin: 0; } .ds-badge-award { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #ecfdf5; color: #059669; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; } .ds-badge-icon { width: 14px; height: 14px; flex-shrink: 0; } .ds-status-icon { width: 16px; height: 16px; flex-shrink: 0; }"
+    },
+    {
+      "name": "Award Semantic Badge",
+      "kind": "chip",
+      "refersTo": "button-primary",
+      "description": "Full-pill badge for Award post type. Emerald fill. Also exists in red (Deduct) variant.",
+      "html": "<span class=\"ds-badge-award-lg\"><svg class=\"ds-badge-icon-lg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"16 12 12 8 8 12\"/><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"8\"/></svg>Award</span>",
+      "css": ".ds-badge-award-lg { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: #ecfdf5; color: #059669; font-family: Inter, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; } .ds-badge-icon-lg { width: 14px; height: 14px; flex-shrink: 0; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "card-post",
+      "description": "Standard form input. Stroke border, white background, 8px radius. Focus ring appears outside the border.",
+      "html": "<div class=\"ds-input-wrapper\"><label class=\"ds-input-label\" for=\"ds-input-ex\">Reason for award</label><input class=\"ds-input\" id=\"ds-input-ex\" type=\"text\" placeholder=\"Describe what they did…\"></div>",
+      "css": ".ds-input-wrapper { display: flex; flex-direction: column; gap: 6px; } .ds-input-label { font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: oklch(0.145 0 0); } .ds-input { width: 100%; height: 40px; padding: 8px 12px; background: oklch(1 0 0); color: oklch(0.145 0 0); font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; border: 1px solid oklch(0.922 0 0); border-radius: 8px; outline: none; transition: box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-input::placeholder { color: oklch(0.556 0 0); } .ds-input:focus { box-shadow: 0 0 0 2px oklch(1 0 0), 0 0 0 4px oklch(0.708 0 0); } @media (prefers-reduced-motion: reduce) { .ds-input { transition: none; } }"
+    },
+    {
+      "name": "ZP Balance Display",
+      "kind": "custom",
+      "refersTo": "button-ghost",
+      "description": "Header ZP balance. Tabular mono font, medium weight. The user's live score — feels like a number, not a badge.",
+      "html": "<span class=\"ds-zp-balance\">42 ZP</span>",
+      "css": ".ds-zp-balance { font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; font-weight: 500; color: oklch(0.30 0 0); font-variant-numeric: tabular-nums; letter-spacing: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Community Scoreboard",
+    "overview": "Zigma Points is a live community ledger — every point request is a public proposal, every vote is a statement, and every settled outcome is a fact the group made together. The design serves that dynamic. It's a scoreboard, not a timeline. Outcomes land with clarity. Votes feel consequential. The feed reads fast. When the group is watching, nothing should be ambiguous.\n\nThe system is product-register first: design disappears into the task. Users aren't here to scroll — they're here to vote, post, and check the standings. Every surface prioritizes scannability over decoration. Inter runs every label, the semantic color vocabulary carries meaning without ornament, and flat tonal surfaces keep focus on the content, not the chrome.\n\nThis system explicitly rejects social-media clone grammar — no algorithmic feed aesthetics, no endless passive scroll, no engagement-bait visual patterns. It also rejects the gamified trophy-case aesthetic — no streaks, no progress rings, no confetti. Points matter because the community says so. The design respects that weight.",
+    "keyCharacteristics": [
+      "High-contrast, fast reads — outcomes scannable in under two seconds",
+      "Semantic color vocabulary — chromatic color carries meaning, not decoration",
+      "Flat tonal layering — no shadows; depth from surface contrast and borders",
+      "Bold and clear affordances — no ambiguity about what's interactive",
+      "App-first — mobile touch targets and interaction patterns throughout",
+      "Inter + JetBrains Mono — humanist warmth for UI, technical precision for data"
+    ],
+    "rules": [
+      { "name": "The Semantic First Rule", "body": "Chromatic color is reserved for semantic meaning: award outcomes are emerald, deduct/error states are red, pending states are amber. No decorative use of color is permitted until a brand accent is formally added to the token system.", "section": "colors" },
+      { "name": "The No Chroma Creep Rule", "body": "Do not introduce new chromatic colors outside the semantic set without a formal token decision. One-off accent colors added directly in components fracture the system.", "section": "colors" },
+      { "name": "The One-Size Rule", "body": "No element inside the app shell uses a font size above 1.5rem. There is no hero here. Hierarchy is weight and color, not scale.", "section": "typography" },
+      { "name": "The Flat-by-Default Rule", "body": "Surfaces never lift at rest. The sole exception is overlays (modals, dropdown menus, popovers) — these must feel above the page plane, not just different from it.", "section": "elevation" },
+      { "name": "The Vote Clarity Rule", "body": "When a vote is cast, the active button is full-fill — not a border shift, not a tint change. The difference between 'I voted' and 'voting is open' must be unmistakable at a glance on a 390px screen.", "section": "components" },
+      { "name": "The No Nested Cards Rule", "body": "Never place a Card inside another Card. This pattern does not exist in the current codebase; do not introduce it.", "section": "components" }
+    ],
+    "dos": [
+      "Do use semantic colors to carry outcome meaning — emerald for Award/Agree/Awarded, red for Deduct/Disagree/Error, amber for Pending.",
+      "Do keep post card surfaces flat with border-subtle (1px) as the sole depth cue. No card shadows.",
+      "Do use Inter 500 (label weight) for all button text, badge text, and interactive labels.",
+      "Do make vote buttons full-width and full-fill when active.",
+      "Do use text-wrap: pretty on explanation and reply text to prevent orphans.",
+      "Do maintain ≥ 44px touch targets on all interactive elements.",
+      "Do show skeleton states while the feed loads. Not spinners in the content well.",
+      "Do use JetBrains Mono for ZP balance numbers and any tabular numeric display.",
+      "Do keep text-muted at oklch(0.556 0 0) or darker. Never lighten secondary text for elegance."
+    ],
+    "donts": [
+      "Don't build social media clone patterns — no Twitter/Reddit feed grammar, no trending/explore surfaces. The feed is a ledger.",
+      "Don't add gamified visuals — no achievement rings, no streak counters, no XP bars, no confetti.",
+      "Don't introduce chromatic color outside the semantic set without a formal brand accent decision.",
+      "Don't use border-left or border-right greater than 1px as a colored accent stripe on any card or list item.",
+      "Don't add box-shadow to post cards or feed surfaces at rest. Shadows belong on overlays only.",
+      "Don't use gradient text (background-clip: text with a gradient fill).",
+      "Don't write secondary text smaller than text-sm (0.875rem) on mobile.",
+      "Don't invent non-standard affordances for standard tasks.",
+      "Don't place a Card inside another Card."
+    ]
+  }
+}

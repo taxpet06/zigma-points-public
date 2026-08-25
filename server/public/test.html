@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Zigma game server — smoke test</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; min-height: 100dvh; display: grid; place-content: center; gap: 1.25rem;
+    padding: 1.5rem; background: #0b0b0f; color: #e7e7ea;
+    font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; text-align: center;
+  }
+  h1 { font-size: 1.1rem; font-weight: 600; margin: 0; color: #9b9ba4; }
+  #status { font-variant-numeric: tabular-nums; color: #9b9ba4; min-height: 1.5em; }
+  #track {
+    position: relative; width: min(90vw, 34rem); height: 3rem;
+    border: 1px solid #2a2a33; border-radius: .75rem; overflow: hidden; background: #131319;
+  }
+  #track::after {
+    content: ""; position: absolute; inset-block: 0; left: 50%; width: 1px; background: #2a2a33;
+  }
+  #rope {
+    position: absolute; inset-block: 0; left: 50%; width: 4px; background: #6ee7b7;
+    transform: translateX(-50%); transition: transform 60ms linear;
+  }
+  button {
+    font: inherit; font-weight: 600; padding: 1.25rem 2rem; border-radius: .75rem;
+    border: 1px solid #2a2a33; background: #1c1c24; color: inherit; cursor: pointer;
+    touch-action: manipulation; user-select: none;
+  }
+  button:active { background: #26262f; }
+  button:disabled { opacity: .4; cursor: default; }
+  #result { font-size: 1.25rem; font-weight: 700; min-height: 1.5em; }
+  code { color: #6ee7b7; }
+</style>
+</head>
+<body>
+  <h1>tug of war — server smoke test</h1>
+  <div id="status">connecting…</div>
+  <div id="track"><div id="rope"></div></div>
+  <button id="pull" disabled>PULL</button>
+  <div id="result"></div>
+
+<script type="module">
+  const q = new URLSearchParams(location.search)
+  const ticket = q.get("ticket")
+  const game = q.get("game") ?? "tug"
+  const room = q.get("room") ?? "test"
+
+  const $status = document.getElementById("status")
+  const $rope = document.getElementById("rope")
+  const $pull = document.getElementById("pull")
+  const $result = document.getElementById("result")
+
+  if (!ticket) {
+    $status.innerHTML = 'No ticket. Generate a join URL with <code>npm run ticket -- yourname</code>'
+    throw new Error("no ticket")
+  }
+
+  // wss:// when the page is https:// — a secure page cannot open an insecure socket.
+  const scheme = location.protocol === "https:" ? "wss" : "ws"
+  const ws = new WebSocket(
+    `${scheme}://${location.host}/ws?ticket=${encodeURIComponent(ticket)}&game=${encodeURIComponent(game)}&room=${encodeURIComponent(room)}`,
+  )
+
+  let me = null
+  let playing = false
+
+  ws.onopen = () => { $status.textContent = `connected to room "${room}" — waiting for another player…` }
+
+  ws.onclose = (e) => {
+    playing = false
+    $pull.disabled = true
+    $status.textContent = e.reason ? `disconnected: ${e.reason} (${e.code})` : "disconnected"
+  }
+
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data)
+    if (m.t === "joined") { me = m.you; return }
+    if (m.t === "players") {
+      $status.textContent = `${m.players.length}/${m.need} players: ${m.players.join(", ")}`
+      return
+    }
+    if (m.t === "start") {
+      playing = true
+      $pull.disabled = false
+      const side = m.state.playerIds[0] === me ? "left" : "right"
+      $status.textContent = `go! you are ${me} — pull ${side}`
+      draw(m.state)
+      return
+    }
+    if (m.t === "state") { draw(m.state); return }
+    if (m.t === "over") {
+      playing = false
+      $pull.disabled = true
+      $result.textContent =
+        m.winnerId === null ? `match ended (${m.reason})` : m.winnerId === me ? "you win" : `${m.winnerId} wins`
+      $status.textContent = "reload the link to play again"
+    }
+  }
+
+  function draw(state) {
+    const half = document.getElementById("track").clientWidth / 2
+    const offset = Math.max(-1, Math.min(1, state.rope / state.winAt)) * half
+    $rope.style.transform = `translateX(calc(-50% + ${offset}px))`
+  }
+
+  function pull() {
+    if (playing) ws.send(JSON.stringify({ t: "input", input: "pull" }))
+  }
+
+  $pull.addEventListener("pointerdown", pull)
+  addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); pull() } })
+
+  // Mash-friendly: holding the button keeps sending. The server caps this at one pull per
+  // tick, so a faster sender gains nothing — that clamp is what makes it fair.
+  setInterval(() => { if (playing && ($pull.matches(":active") || held)) pull() }, 40)
+  let held = false
+  addEventListener("keydown", (e) => { if (e.code === "Space") held = true })
+  addEventListener("keyup", (e) => { if (e.code === "Space") held = false })
+</script>
+</body>
+</html>

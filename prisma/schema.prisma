@@ -1,0 +1,878 @@
+// Prisma v7 schema — uses "prisma-client" provider with explicit output path.
+// The datasource block has NO url property in v7; the migration URL comes from
+// prisma.config.ts via env("DIRECT_URL"). Runtime queries use DATABASE_URL
+// via the PrismaNeon adapter configured in src/lib/db.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // No url property — configured via prisma.config.ts (Prisma v7 pattern)
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PostType {
+  AWARD
+  DEDUCT
+  // REGULAR: a plain social post — title, optional description, optional images. No targets,
+  // no ZP, no vote, no settlement. It is stored in Post (not a new model) because it shares
+  // every other column and the whole point is that it appears in the same feed; the fields it
+  // does not use are neutralised at creation (zpAmount 0, no PostTarget rows, settled true so
+  // the settlement cron's `settled: false` filter skips it) rather than made nullable, which
+  // would have meant a null check at every existing read site for no gain.
+  REGULAR
+  // TASK removed — D-03: Task Posts live in the Task model (not in Post with type=TASK)
+}
+
+enum VoteType {
+  AGREE
+  DISAGREE
+}
+
+enum CompletionStatus {
+  PENDING
+  AWARDED
+}
+
+// STANDARD: complete-to-earn task (zpReward). BET: pari-mutuel prediction pool
+// (choices + minBet; users stake ZP, pot splits to backers of the winning choice).
+enum TaskKind {
+  STANDARD
+  BET
+}
+
+// Peer ZP transfer lifecycle.
+//   APPROVED — a direct Send (money moved at creation) or an approved Request.
+//   PENDING  — a Request awaiting the payer's decision (no money moved yet).
+//   REJECTED — a Request the payer declined (no money moved).
+enum TransferStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CosmeticKind {
+  BACKGROUND
+  RING
+  TITLE
+}
+
+// Phase 20 — a community Listing's lifecycle. ACTIVE means it is on the board and
+// buyable; SOLD/CANCELLED are terminal and never deleted (repudiation-resistant
+// history of every claim on a copy).
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+}
+
+enum CasinoGame {
+  PLINKO
+  MINES
+  DICE
+  WHEEL
+  CHICKEN
+  AVIAMASTERS
+  BLACKJACK
+}
+
+// ponytail: no ABANDONED state — 10-CONTEXT.md § Abandoned rounds specifies an
+// abandoned round auto-cashes-out at the earned multiplier, which is a SETTLED
+// outcome, not a third status. Do not add ABANDONED back.
+enum CasinoBetStatus {
+  ACTIVE // in-flight multi-step round (Mines / Chicken) — the CASN-07 resume record
+  SETTLED // terminal; payout applied exactly once
+}
+
+// ---------------------------------------------------------------------------
+// NextAuth models
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  username      String?   @unique
+  emailVerified DateTime?
+  image         String?
+  bio           String?
+  password      String? // null for OAuth users
+
+  role        Role @default(USER)
+  zigmaPoints Int  @default(0)
+
+  // When false, skip email notifications and rely on push only (opt-out after PWA install).
+  emailNotifications Boolean @default(true)
+
+  // Equipped cosmetic slugs — nullable = none equipped (SHOP-03).
+  equippedBackground String?
+  equippedRing       String?
+  equippedTitle      String?
+
+  // Zigma Maxxer crown — at most one user in the whole app has it. Enforced by the
+  // setCrown/setWinner mutations (clear-all then set-one in a transaction), not by a
+  // constraint: "at most one row is true" isn't expressible as one.
+  hasCrown Boolean @default(false)
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // App relations
+  posts                   Post[]                   @relation("author")
+  targetedPosts           PostTarget[] // posts where this user is one of the targets
+  votes                   Vote[]
+  replies                 Reply[]
+  tasksCreated            Task[]
+  taskCompletions         TaskCompletion[]
+  taskBets                TaskBet[]
+  pushSubscriptions       PushSubscription[]
+  transfersSent           Transfer[]               @relation("from") // transfers where this user is the payer
+  transfersReceived       Transfer[]               @relation("to") // transfers where this user is the payee
+  listingsSelling         Listing[]                @relation("listingSeller")
+  listingsBuying          Listing[]                @relation("listingBuyer")
+  dailyRewards            DailyReward[]
+  wordleResults           WordleResult[]
+  minezweeperResults      MinezweeperResult[]
+  bombAxaWins             BombAxaWin[]
+  flappyRuns              FlappyRun[]
+  tetrisRuns              TetrisRun[]
+  znakeRuns               ZnakeRun[]
+  zrossRuns               ZrossRun[]
+  sequenceRecallRuns      SequenceRecallRun[]
+  insamotherfuckingllahRuns InsamotherfuckingllahRun[]
+  jjPet                   JjPet?
+  cosmeticPurchases       CosmeticPurchase[]
+  casinoSeeds             CasinoSeed[]
+  casinoBets              CasinoBet[]
+  termsWon                Term[]                   @relation("termWinner")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// App models
+// ---------------------------------------------------------------------------
+
+model Post {
+  id           String   @id @default(cuid())
+  authorId     String
+  type         PostType
+  title        String
+  explanation  String
+  zpAmount     Int // ZP awarded/deducted PER target individually on settlement
+  mediaUrl     String?
+  images       String[] @default([]) // attachment image URLs, shown as a carousel on the card
+  settled      Boolean  @default(false)
+  outcome      String? // "Awarded" | "Rejected" | null until settled
+  votingEndsAt DateTime
+
+  author  User         @relation("author", fields: [authorId], references: [id])
+  targets PostTarget[] // one or more target users (M-01: multi-target posts)
+  votes   Vote[]
+  replies Reply[]
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("posts")
+}
+
+// Junction table for the many-to-many between Post and its target users (M-01).
+// A passing post awards/deducts post.zpAmount to EACH linked user individually.
+model PostTarget {
+  id     String @id @default(cuid())
+  postId String
+  userId String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId]) // a user can be targeted at most once per post
+  @@index([userId])
+  @@map("post_targets")
+}
+
+model Vote {
+  id     String   @id @default(cuid())
+  postId String
+  userId String
+  type   VoteType
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId]) // one vote per user per post (VOTE-01)
+  @@map("votes")
+}
+
+model Reply {
+  id       String  @id @default(cuid())
+  postId   String? // was String — now nullable for task replies (D-02, Pitfall 1)
+  taskId   String? // new field (D-02)
+  parentId String?
+  authorId String
+  content  String
+  mediaUrl String?
+
+  post     Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  task     Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  parent   Reply?  @relation("nested", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children Reply[] @relation("nested")
+  author   User    @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("replies")
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  adminId     String
+  title       String
+  description String
+  mediaUrl    String?
+  images      String[] @default([]) // attachment image URLs, shown as a carousel on the card
+  zpReward    Int      @default(1) // was Int? — non-nullable; createTaskSchema min(1) enforces this at creation (WR-01). Unused for BET tasks (stored 0).
+
+  // Betting fields — null/empty for STANDARD tasks.
+  kind          TaskKind  @default(STANDARD)
+  choices       String[] // multiple-choice options (e.g. team names); empty for STANDARD
+  minBet        Int? // minimum ZP a user must stake per bet
+  betsCloseAt   DateTime? // admin-set cutoff; null = betting open until settlement
+  winningChoice String? // set at settlement — the choice that pays out
+  betSettledAt  DateTime? // null until an admin settles the pool (idempotency guard)
+
+  admin       User             @relation(fields: [adminId], references: [id])
+  completions TaskCompletion[]
+  bets        TaskBet[]
+  replies     Reply[] // new back-relation (D-02)
+
+  createdAt DateTime @default(now())
+
+  @@map("tasks")
+}
+
+// One stake per user per BET task. amount is deducted from the user's balance at
+// bet time; payout is null until settlement (then 0 for a loss, or the ZP paid out).
+model TaskBet {
+  id     String @id @default(cuid())
+  taskId String
+  userId String
+  choice String // must be one of Task.choices
+  amount Int // ZP staked (>= Task.minBet)
+  payout Int? // null=pending, 0=lost, >0=won (credited at settlement)
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId]) // one bet per user per task
+  @@index([taskId])
+  @@map("task_bets")
+}
+
+// One row per subscribed device. endpoint is @unique — re-subscribing the same
+// endpoint (e.g. same device, different logged-in user) reassigns ownership via
+// upsert rather than duplicating (correct behavior for shared devices).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model TaskCompletion {
+  id        String           @id @default(cuid())
+  taskId    String
+  userId    String
+  status    CompletionStatus @default(PENDING)
+  awardedZp Int?
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@map("task_completions")
+}
+
+// One row per slot-machine spin. The FIRST row of a day is the free spin; every row
+// after it is a paid replay (costZp = SLOTS_REPLAY_COST). `day` is a RESET_TZ
+// "YYYY-MM-DD" key — the rollover to a new key IS the reset, so no scheduled DB write
+// is needed. The free-spin double-claim guard is the Serializable count-then-insert in
+// dailyReward.claim (a @@unique can't express "first one free", see the router).
+model DailyReward {
+  id        String   @id @default(cuid())
+  userId    String
+  day       String // RESET_TZ calendar-day key, e.g. "2026-07-12" (see lib/day-key)
+  ticks     Int // number of tick reels, 0-3
+  zp        Int // ZP awarded: 0,1,3,5 by tick count
+  costZp    Int      @default(0) // ZP debited for this spin: 0 = the day's free spin, else a paid replay
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, day])
+  @@map("daily_rewards")
+}
+
+// One row per user per day they finish Wordle — the once-a-day guard AND the ZP
+// ledger. Written by wordle.claim, which derives zp server-side (never trusts the
+// client): 7 - tries on a win (6..1), 0 on a loss.
+model WordleResult {
+  id        String   @id @default(cuid())
+  userId    String
+  day       String // RESET_TZ calendar-day key (see lib/day-key)
+  won       Boolean
+  tries     Int // 1-6
+  zp        Int // 6..1 on a win by speed, 0 on a loss
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@map("wordle_results")
+}
+
+// One row per user per day they finish MineZweeper — same contract as WordleResult:
+// the once-a-day guard AND the ZP ledger. Written by minezweeper.claim, which derives zp
+// by rebuilding the day's board and checking the revealed set (never trusts the client).
+// A loss is a real row too — hitting a mine burns the day and pays 0.
+model MinezweeperResult {
+  id        String   @id @default(cuid())
+  userId    String
+  day       String // RESET_TZ calendar-day key (see lib/day-key)
+  won       Boolean
+  zp        Int // MINEZWEEPER_ZP on a clear, 0 otherwise
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@map("minezweeper_results")
+}
+
+// One row per user per day they LEVEL the AXA house. Unlike every other daily row here
+// this one is written on a win only — Bomb AXA cannot be lost, so opening it, quitting,
+// or replaying it twenty times leaves no trace and the free 5 ZP stays available until
+// the house is actually flattened. The @@unique is therefore the whole economy: it is
+// what makes the 2nd..Nth clear of the day a free, unpaid replay.
+model BombAxaWin {
+  id        String   @id @default(cuid())
+  userId    String
+  day       String // RESET_TZ calendar-day key (see lib/day-key)
+  bombs     Int // how many bombs the winning run took — flavour stat, not money
+  zp        Int // BOMB_AXA_ZP
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@map("bomb_axa_wins")
+}
+
+// Peer-to-peer ZP transfer. fromUser is always the payer (balance decreases),
+// toUser the payee (balance increases) — direction is identical for a Send and a
+// Request; only who initiates and the status differ.
+//   Send    → creator is fromUser; inserted APPROVED with balances already moved.
+//   Request → creator is toUser; inserted PENDING; fromUser approves (pays) or rejects.
+//
+// LOANS (dueAt non-null). The direction rule above is unchanged, which is the whole point:
+//   Send + loan    → lender = fromUser, borrower = toUser; money moves at creation.
+//   Request + loan → lender = fromUser (the approver), borrower = toUser (the requester).
+// So the BORROWER is always toUserId and the LENDER always fromUserId; at dueAt the cron
+// sweep reverses the original flow exactly — no borrowerId column, no per-origination branch.
+model Transfer {
+  id         String         @id @default(cuid())
+  fromUserId String // payer — loses ZP on approval
+  toUserId   String // payee — gains ZP on approval
+  amount     Int
+  note       String?
+  status     TransferStatus @default(PENDING)
+
+  // Who created the row — and therefore who does NOT get to approve it. The approver is
+  // always the other party: a Send is initiated by the payer (fromUser) and approved by
+  // the recipient; a Request is initiated by the payee (toUser) and approved by the payer.
+  // Nothing moves ZP until that approval, so loan terms can never be forced on anyone.
+  // NULL only on rows that settled before sends needed approval — those are never PENDING,
+  // and this column is only ever read on PENDING rows.
+  initiatedById String?
+
+  interestPct Int? // percent of principal, 0-1000, applied exactly once (no compounding)
+  dueAt       DateTime? // a row is a LOAN iff this is non-null
+  repaidAt    DateTime? // set by the cron sweep when the loan was auto-collected
+
+  // Phase 20 — non-null iff this row is a trade offer (one copy <-> one ZP amount).
+  // No @@unique: a copy can be offered, denied, and re-offered many times across its
+  // life; CosmeticPurchase.escrowed (not this column) enforces "one open offer at a
+  // time." fromUserId/toUserId/initiatedById keep their EXISTING meanings unchanged
+  // — a trade offer is direction-mapped exactly like a Request: the offerer (who
+  // currently owns the copy and wants ZP) is toUserId/initiatedById; the chosen
+  // recipient (who pays ZP and receives the copy) is fromUserId. A cancel reuses
+  // TransferStatus.REJECTED rather than a new enum value (see status comment
+  // above); a future transfer-history view would need to distinguish
+  // initiator-cancel from approver-decline — a documented, accepted limitation.
+  cosmeticPurchaseId String?
+
+  fromUser User              @relation("from", fields: [fromUserId], references: [id])
+  toUser   User              @relation("to", fields: [toUserId], references: [id])
+  copy     CosmeticPurchase? @relation(fields: [cosmeticPurchaseId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime? // set when a PENDING request is approved/rejected
+
+  @@index([fromUserId, status]) // "View Requests" query: pending requests I must answer
+  @@index([toUserId])
+  @@index([status, dueAt]) // cron loan sweep: APPROVED loans past their deadline
+  @@index([cosmeticPurchaseId]) // trade offer -> copy lookup
+  @@map("transfers")
+}
+
+// Signup allowlist — an email must have a row here to register an account.
+// Enforced server-side in BOTH registration paths (there is no other way in):
+//   src/lib/actions/auth.ts (signUp action) and src/app/api/auth/register/route.ts
+//
+// This gates REGISTRATION ONLY. Removing a row never deletes, disables, or signs out
+// an existing account — it only stops that address from registering again. Sign-in
+// and password reset deliberately do not consult this table.
+//
+// Seeded on migration from every email that already had an account, so no existing
+// user is ever locked out of re-registering.
+model ApprovedEmail {
+  id    String @id @default(cuid())
+  email String @unique // always stored trimmed + lowercased (see lib/approved-emails.ts)
+
+  createdAt DateTime @default(now())
+
+  @@map("approved_emails")
+}
+
+enum FlappyRunStatus {
+  ACTIVE
+  ENDED
+  ABANDONED
+}
+
+model FlappyRun {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  day    String // dayKey() at start-time; drives 3-runs-per-day cap + future leaderboard
+  seed   Int // 32-bit uint; both sides derive layout from it
+  status FlappyRunStatus @default(ACTIVE)
+
+  entryCost    Int   @default(5)
+  zpEarned     Int   @default(0)
+  eatsClaimed  Int[] @default([]) // edible indexes already claimed; O(1) dup check
+  dailyPrizeZp Int? // set once when this run wins an end-of-day leaderboard prize;
+  // null→value compare-and-set is the cron's idempotency guard
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([userId, day])
+  @@index([day, zpEarned(sort: Desc)])
+}
+
+enum TetrisRunStatus {
+  ACTIVE
+  ENDED
+  ABANDONED
+}
+
+model TetrisRun {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  day    String // dayKey() at start-time; drives the free-run-per-day cap + leaderboard
+  seed   Int // 32-bit uint; both sides derive the 7-bag piece stream from it
+  status TetrisRunStatus @default(ACTIVE)
+
+  entryCost Int @default(0) // ZP debited to start: 0 = the day's free run, else a paid replay (banks no ZP)
+
+  score        Int  @default(0) // leaderboard points, uncapped, from server replay
+  linesCleared Int  @default(0)
+  zpEarned     Int  @default(0) // banked ZP = min(linesCleared, 5)
+  dailyPrizeZp Int? // set once when this run wins an end-of-day leaderboard prize;
+  // null→value compare-and-set is the cron's idempotency guard
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([userId, day])
+  @@index([day, score(sort: Desc)])
+}
+
+enum ZnakeRunStatus {
+  ACTIVE
+  ENDED
+  ABANDONED
+}
+
+// Znake — one apple = 1 point = 1 ZP, so score IS zpEarned (no separate column,
+// unlike TetrisRun where score and banked ZP diverge). applesClaimed is a plain
+// counter, not FlappyRun's Int[] of indexes: apples spawn one at a time and eat()
+// only accepts the strictly-next index, so the count alone is the dedup key.
+model ZnakeRun {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  day    String // dayKey() at start-time; drives the free-run-per-day cap + leaderboard
+  seed   Int // 32-bit uint; seeds the client's apple-placement RNG
+  status ZnakeRunStatus @default(ACTIVE)
+
+  entryCost Int @default(0) // ZP debited to start: 0 = the day's free run, else a paid replay (banks no ZP)
+
+  zpEarned      Int  @default(0) // score AND banked ZP (paid replays bank 0 but still score)
+  applesClaimed Int  @default(0) // next accepted appleIndex; monotonic, server-owned
+  dailyPrizeZp  Int? // set once when this run wins an end-of-day leaderboard prize;
+  // null→value compare-and-set is the cron's idempotency guard
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([userId, day])
+  @@index([day, zpEarned(sort: Desc)])
+}
+
+enum ZrossRunStatus {
+  ACTIVE
+  ENDED
+  ABANDONED
+}
+
+// Zross — one pickup = 1 point = 1 ZP, so score IS zpEarned (no separate score column,
+// same convention as ZnakeRun). pickupsClaimed is the server-owned monotonic claim
+// counter that collect() compares claims against (gap-absorbing, duplicate-rejecting —
+// see zross/router.ts). dailyPrizeZp's null→value transition is the cron's idempotency
+// guard, exactly as ZnakeRun's.
+model ZrossRun {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  day    String // dayKey() at start-time; drives the free-run-per-day cap + leaderboard
+  seed   Int // 32-bit uint; seeds the client's lane-generation RNG
+  status ZrossRunStatus @default(ACTIVE)
+
+  entryCost Int @default(0) // ZP debited to start: 0 = the day's free run, else a paid replay (banks no ZP)
+
+  zpEarned       Int  @default(0) // score AND banked ZP (paid replays bank 0 but still score)
+  pickupsClaimed Int  @default(0) // next accepted pickup index; monotonic, server-owned
+  dailyPrizeZp   Int? // set once when this run wins an end-of-day leaderboard prize;
+  // null→value compare-and-set is the cron's idempotency guard
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([userId, day])
+  @@index([day, zpEarned(sort: Desc)])
+}
+
+enum SequenceRecallRunStatus {
+  ACTIVE
+  ENDED
+  ABANDONED
+}
+
+// Sequence Recall — zpEarned is score AND banked ZP: one cleared round is 1 ZP flat,
+// so there is no separate score column, same convention as ZrossRun/ZnakeRun. tier and
+// round are server-owned and only ever advanced by submitRound (never client-writable).
+// roundInputStartedAt is the SERVER's timestamp for when the CURRENT round's input
+// window opened, set by beginRound and cleared to null whenever a round resolves — it
+// is nullable because it is unset between run creation and the first beginRound, and
+// between successive rounds while the blink playback runs. dailyPrizeZp's null→value
+// transition is the cron's idempotency guard, exactly as ZrossRun's/ZnakeRun's.
+model SequenceRecallRun {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  day    String // dayKey() at start-time; drives the free-run-per-day cap + leaderboard
+  seed   Int // 32-bit uint; seeds the client's tile-sequence RNG
+  status SequenceRecallRunStatus @default(ACTIVE)
+
+  entryCost Int @default(0) // ZP debited to start: 0 = the day's free run, else a paid replay (banks no ZP)
+  zpEarned  Int @default(0) // score AND banked ZP (paid replays bank 0 but still score)
+
+  tier  Int @default(1) // server-owned escalation tier; advanced only by submitRound
+  round Int @default(1) // server-owned round-within-tier counter; advanced only by submitRound
+
+  roundInputStartedAt DateTime? // server timestamp the current round's input window opened;
+  // set by beginRound, cleared to null on round resolution
+
+  dailyPrizeZp Int? // set once when this run wins an end-of-day leaderboard prize;
+  // null→value compare-and-set is the cron's idempotency guard
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([userId, day])
+  @@index([day, zpEarned(sort: Desc)])
+}
+
+// One row per COPY of a cosmetic. slug is the shared key with the hardcoded
+// src/lib/cosmetics.ts registry (no DB-level FK to a hardcoded set is possible —
+// the app-layer registry gate is the control, see 08-CONTEXT.md).
+//
+// mintNumber is the copy's circulation serial: the Nth copy of that slug ever
+// minted, 1-based, assigned as count(slug)+1 inside the openBox transaction. A
+// user may hold several copies (duplicates are ownable), so the old
+// @@unique([userId, slug]) "can't own twice" guard is gone; @@unique([slug,
+// mintNumber]) replaces it as the race guard — two concurrent opens can never
+// share a serial, the loser's whole transaction (debit included) rolls back and
+// re-runs against the committed count. Circulation total = count of rows per slug.
+model CosmeticPurchase {
+  id         String       @id @default(cuid())
+  userId     String
+  slug       String
+  kind       CosmeticKind
+  pricePaid  Int
+  mintNumber Int
+  // Marketplace/trade escrow flag (Phase 20). True while an ACTIVE Listing or a
+  // PENDING trade-offer Transfer holds this copy — set/cleared inside the SAME
+  // transaction that creates/resolves that Listing/Transfer, never independently.
+  // No reverse pointer to WHICH listing/offer: every caller that clears this flag
+  // (take-down, cancel, respond) already has the listing/transfer id in hand, so a
+  // reverse FK would answer a question nothing asks. Mirrors the `slug` field
+  // above it: no DB-level FK to another hardcoded/dynamic concept, app-layer
+  // transactions are the control (same precedent, not a new pattern).
+  escrowed   Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listings    Listing[] // every Listing this copy was EVER put up as (only <=1 ACTIVE at a time)
+  tradeOffers Transfer[] // every trade-offer Transfer this copy was EVER attached to
+
+  @@unique([slug, mintNumber])
+  @@index([userId])
+  @@map("cosmetic_purchases")
+}
+
+// A public, buyer-unknown-at-creation offer to sell one owned copy. Deliberately its
+// own model, not folded into Transfer: every Transfer row has a real toUserId at
+// creation (a Send/Request/trade-offer always names a counterparty) — a community
+// listing has none until someone buys it. Bending Transfer's NOT NULL toUserId to
+// fit "nobody yet" would be the worse hack. No @@unique on cosmeticPurchaseId: a
+// copy can cycle through list -> take down -> re-list many times over its life,
+// each a new row — CosmeticPurchase.escrowed (not this table's row count) is what
+// enforces "at most one open claim on a copy at a time."
+model Listing {
+  id                 String        @id @default(cuid())
+  sellerId           String
+  cosmeticPurchaseId String
+  price              Int
+  status             ListingStatus @default(ACTIVE)
+  buyerId            String? // set on SOLD
+  createdAt          DateTime      @default(now())
+  resolvedAt         DateTime? // set on SOLD or CANCELLED — rows are never deleted
+
+  seller User             @relation("listingSeller", fields: [sellerId], references: [id])
+  buyer  User?            @relation("listingBuyer", fields: [buyerId], references: [id])
+  copy   CosmeticPurchase @relation(fields: [cosmeticPurchaseId], references: [id])
+
+  @@index([status]) // "All listings" board query
+  @@index([sellerId, status]) // "Your listings" query
+  @@map("listings")
+}
+
+// One row per (user, seed pair). The ACTIVE pair is the row with revealedAt == null.
+model CasinoSeed {
+  id             String    @id @default(cuid())
+  userId         String
+  serverSeed     String // SECRET until revealedAt — never selected into a client-facing payload while revealedAt is null
+  serverSeedHash String // sha256(serverSeed) — safe to publish (FAIR-01)
+  clientSeed     String // user-settable (FAIR-02)
+  nonce          Int       @default(0) // last allocated; first bet on a pair is nonce 1
+  createdAt      DateTime  @default(now())
+  revealedAt     DateTime? // set on rotation; non-null => retired AND serverSeed public (FAIR-03)
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bets CasinoBet[]
+
+  @@index([userId, revealedAt])
+  @@map("casino_seeds")
+}
+
+model CasinoBet {
+  id         String          @id @default(cuid())
+  userId     String
+  seedId     String
+  nonce      Int
+  game       CasinoGame
+  wager      Int // ZP staked, already debited at insert time
+  config     Json // per-game bet config: {rows,risk} | {mines} | {target,mode} | {segments,risk} | {difficulty}
+  state      Json? // in-flight progress while ACTIVE; replaced by the full outcome at settle (audit + verifier input)
+  multiplier Float? // null until settled; 0 on a total loss
+  payout     Int? // null until settled; 0 on a loss. floor(wager * multiplier), capped
+  status     CasinoBetStatus @default(ACTIVE)
+  createdAt  DateTime        @default(now())
+  settledAt  DateTime?
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seed CasinoSeed @relation(fields: [seedId], references: [id], onDelete: Cascade)
+
+  @@unique([seedId, nonce]) // the fairness invariant, enforced by the DB — nonce reuse voids provable fairness
+  @@index([userId, createdAt(sort: Desc)]) // bet history (CASN-06)
+  @@index([userId, status]) // resume in-flight round (CASN-07) + stale sweep
+  @@map("casino_bets")
+}
+
+// JJ's one row per user — the whole Tamagotchi. There is no per-day row: the day-rollover,
+// death and streak rules are derived from these fields by private-games/jj/logic.ts, so a
+// user who never opens the game costs one row, not one row a day.
+//
+// `progress` only means anything when `progressDay` is today (lib/day-key) — a stale
+// progressDay IS the reset, so a partial 1/3 evaporates at midnight with no cron and no
+// refund, exactly as the rules promise.
+model JjPet {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  progress    Int    @default(0) // ZP fed toward progressDay's quota (0..3 alive, 0..5 dead)
+  progressDay String // RESET_TZ day-key `progress` belongs to; older than today = reset
+
+  alive      Boolean @default(true)
+  lastFedDay String? // last day-key JJ was FULLY fed; null = never fed (new pets can't die)
+  streak     Int     @default(0) // consecutive fully-fed days ending at lastFedDay
+  claimedDay String? // lastFedDay whose streak reward has been paid — the double-claim guard
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("jj_pets")
+}
+
+enum InsamotherfuckingllahRunStatus {
+  ACTIVE
+  ENDED
+  ABANDONED
+}
+
+// INSAMOTHERFUCKINGLLAH — one alien kill = 1 point = 1 ZP, so score IS zpEarned (no
+// separate score column, same convention as ZrossRun). killsClaimed is the
+// server-owned monotonic claim counter kill() compares claims against (gap-absorbing,
+// duplicate-rejecting — a bomb legitimately claims several kills at once). No seed
+// column: there is no server-validated layout to seed, unlike a lane/pipe generator.
+// dailyPrizeZp's null→value transition is the cron's idempotency guard, exactly as
+// ZrossRun's.
+model InsamotherfuckingllahRun {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  day    String // dayKey() at start-time; drives the free-run-per-day cap + leaderboard
+  status InsamotherfuckingllahRunStatus @default(ACTIVE)
+
+  entryCost Int @default(0) // ZP debited to start: 0 = the day's free run, else a paid replay (banks no ZP)
+
+  zpEarned     Int  @default(0) // score AND banked ZP (paid replays bank 0 but still score)
+  killsClaimed Int  @default(0) // next accepted kill index; monotonic, server-owned
+  dailyPrizeZp Int? // set once when this run wins an end-of-day leaderboard prize;
+  // null→value compare-and-set is the cron's idempotency guard
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([userId, day])
+  @@index([day, zpEarned(sort: Desc)])
+}
+
+// ---------------------------------------------------------------------------
+// Terms
+// ---------------------------------------------------------------------------
+
+// A term is a fixed calendar window the app is organised around. Admins create
+// them and set the window; every user's header counts down to endsAt.
+//
+// There is no "isCurrent" flag — the current term is derived (the most recent
+// term that has already started, see trpc/routers/term.ts). A flag would be a
+// second source of truth that can disagree with the dates.
+model Term {
+  id       String   @id @default(cuid())
+  name     String
+  startsAt DateTime
+  endsAt   DateTime
+
+  // The term's Zigma Maxxer. One per term by construction — it's a single column,
+  // so there is no way to store two. SetNull so deleting a user doesn't delete history.
+  winnerId String?
+  winner   User?   @relation("termWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([startsAt])
+  @@index([winnerId])
+  @@map("terms")
+}

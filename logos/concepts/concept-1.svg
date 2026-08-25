@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="tileGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F43F5E"/>
+      <stop offset="0.55" stop-color="#E11D48"/>
+      <stop offset="1" stop-color="#7C1428"/>
+    </linearGradient>
+  </defs>
+
+  <g id="tile">
+    <rect x="0" y="0" width="512" height="512" rx="113" ry="113" fill="url(#tileGrad)"/>
+  </g>
+
+  <g id="mark" fill="#FFF5F6">
+    <!-- C: solid filled ring with a wide open right side.
+         Center (172,256), outer r=116, inner r=54 -> thickness 62.
+         Opening ~66deg on the right, with rounded terminals. -->
+    <path d="
+      M 269.3 192.8
+      A 116 116 0 1 1 269.3 319.2
+      A 32 32 0 0 1 217.3 285.4
+      A 54 54 0 1 0 217.3 226.6
+      A 32 32 0 0 1 269.3 192.8
+      Z"/>
+
+    <!-- P: vertical stem on the left, same weight and cap height as the C. -->
+    <rect x="300" y="140" width="62" height="232" rx="16" ry="16"/>
+
+    <!-- P bowl: solid filled half-ring on the upper right, arm thickness 62 (matches stem),
+         enclosing a clearly open counter via fill-rule evenodd.
+         Outer r=95, inner r=33 about center (362,235). -->
+    <path fill-rule="evenodd" d="
+      M 331 140
+      L 362 140
+      A 95 95 0 0 1 362 330
+      L 331 330
+      Z
+      M 362 202
+      L 362 268
+      A 33 33 0 0 0 362 202
+      Z"/>
+  </g>
+</svg>

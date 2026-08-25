@@ -1,0 +1,686 @@
+/* Cosmetic layer — animated profile-card backgrounds + avatar rings, plus the
+   shop's rarity glow (17-CONTEXT.md "Rarity → color") and lootbox chest idle
+   animation. Ported verbatim from the approved gallery (scratchpad/shop-gallery.html)
+   for the background/ring sections. Saturated color literals are intentionally
+   scoped here, not promoted to globals.css tokens — this is the decorative
+   cosmetic layer. The rarity hex literals (#059669/#d97706) follow the same
+   point-of-use convention as wheel-face.tsx/plinko-board.tsx; Legendary reuses
+   var(--primary) exactly like RING 2 · Pulse Glow above.
+   prefers-reduced-motion is handled globally in src/app/globals.css — the new
+   rarity/chest animations are deliberately NOT opted into .cosmetic-motion, so
+   they freeze under reduced motion like any ordinary decorative animation. */
+
+@property --spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* ══ shared keyframes ══ */
+@keyframes aurora {
+  0%, 100% { background-position: 0% 0%, 100% 0%, 50% 100%; }
+  50% { background-position: 30% 40%, 60% 30%, 40% 60%; }
+}
+/* spin animates the registered @property --spin, used by the holo background's
+   conic-gradient angle (a square element can't be transform-rotated without
+   corner gaps). Rings are circular, so they rotate the element itself via
+   spin-rotate — no @property dependency, which some CSS build pipelines drop. */
+@keyframes spin { to { --spin: 360deg; } }
+@keyframes spin-rotate { to { transform: rotate(360deg); } }
+@keyframes sheen {
+  0%, 100% { transform: translateX(-40%); }
+  50% { transform: translateX(40%); }
+}
+@keyframes drift { to { transform: translate(60px, 40px); } }
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes rise {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-160px) scale(0.4); opacity: 0; }
+}
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(40px, 30px); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-50px, 20px); }
+}
+@keyframes float3 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, -30px); }
+}
+@keyframes glowpulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px var(--primary), 0 0 10px 2px color-mix(in oklch, var(--primary) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--primary), 0 0 26px 8px color-mix(in oklch, var(--primary) 80%, transparent);
+  }
+}
+@keyframes breathering {
+  0%, 100% { transform: scale(0.94); opacity: 0.7; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+/* ══ BACKGROUND 1 · Aurora Drift ══ */
+.bg-aurora {
+  background:
+    radial-gradient(60% 55% at 18% 20%, oklch(0.62 0.24 5 / 0.95), transparent 60%),
+    radial-gradient(55% 55% at 85% 15%, oklch(0.70 0.18 330 / 0.9), transparent 62%),
+    radial-gradient(70% 65% at 60% 100%, oklch(0.55 0.20 355 / 0.95), transparent 65%),
+    oklch(0.32 0.14 350);
+  background-size: 180% 180%;
+  animation: aurora 14s ease-in-out infinite;
+}
+
+/* ══ BACKGROUND 2 · Plasma Nebula (SVG feTurbulence) ══ */
+.bg-nebula svg { width: 100%; height: 100%; display: block; }
+
+/* ══ BACKGROUND 3 · Holographic Foil ══ */
+.bg-holo {
+  background: conic-gradient(from var(--spin), #ff0059, #ffbe0b, #3bf0c0, #4361ee, #b5179e, #ff0059);
+  animation: spin 8s linear infinite;
+  filter: saturate(1.1);
+}
+.bg-holo::after {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  animation: sheen 4.5s ease-in-out infinite;
+}
+
+/* ══ BACKGROUND 4 · Starfield ══ */
+.bg-star {
+  background: radial-gradient(120% 120% at 50% 0%, oklch(0.28 0.09 300), oklch(0.12 0.04 300) 70%);
+}
+.bg-star .stars, .bg-star .stars2 {
+  position: absolute;
+  inset: -50%;
+  background-image:
+    radial-gradient(1.4px 1.4px at 20% 30%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 70% 60%, #ffe6f0, transparent),
+    radial-gradient(1.6px 1.6px at 40% 80%, #fff, transparent),
+    radial-gradient(1px 1px at 85% 25%, #cbe, transparent),
+    radial-gradient(1.3px 1.3px at 55% 45%, #fff, transparent);
+  background-size: 200px 200px;
+  animation: drift 18s linear infinite, twinkle 3.5s ease-in-out infinite;
+}
+.bg-star .stars2 {
+  background-size: 320px 320px;
+  animation-duration: 28s, 4.8s;
+  opacity: 0.7;
+}
+
+/* ══ BACKGROUND 5 · Ember ══ */
+.bg-ember {
+  background: radial-gradient(90% 90% at 50% 120%, oklch(0.55 0.24 20), oklch(0.22 0.12 15) 70%);
+}
+.bg-ember .glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 50% at 50% 100%, oklch(0.72 0.22 30 / 0.8), transparent 70%);
+  animation: breathe 3.2s ease-in-out infinite;
+}
+.bg-ember .spark {
+  position: absolute;
+  bottom: -8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: oklch(0.85 0.18 45);
+  filter: blur(0.3px);
+  animation: rise linear infinite;
+}
+
+/* ══ BACKGROUND 6 · Liquid Mesh ══ */
+.bg-mesh { background: oklch(0.24 0.06 300); filter: contrast(1.05); }
+.bg-mesh .blob { position: absolute; border-radius: 999px; filter: blur(22px); mix-blend-mode: screen; }
+.bg-mesh .b1 {
+  width: 130px; height: 130px; background: oklch(0.6 0.25 5);
+  left: 5%; top: 10%; animation: float1 10s ease-in-out infinite;
+}
+.bg-mesh .b2 {
+  width: 150px; height: 150px; background: oklch(0.6 0.2 300);
+  right: 0; top: 30%; animation: float2 13s ease-in-out infinite;
+}
+.bg-mesh .b3 {
+  width: 120px; height: 120px; background: oklch(0.65 0.2 200);
+  left: 35%; bottom: -20px; animation: float3 11s ease-in-out infinite;
+}
+
+/* ══ BACKGROUND 7 · Cloud Drift (RARE) ══
+   Seamless cloud texture scrolling right -> left. The ::before is 200% wide with
+   each tile sized to 50% (= one container width) and repeated, then translated
+   -50% (exactly one tile) for a seamless, size-independent loop. 30s = a gentle
+   drift ("slow, but not too slow"). Texture lives in /public/assets/26X/. */
+/* No overflow:hidden here — the outer card wrapper clips (same as the smooth
+   common backgrounds, e.g. Starfield). overflow:hidden on the parent of a
+   transformed layer forces main-thread rasterisation → choppy scroll. */
+.bg-clouds { background: oklch(0.62 0.07 250); }
+.bg-clouds::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 200%;
+  background-image: url("/assets/26X/clouds.jpg");
+  background-size: 50% 100%;
+  background-repeat: repeat-x;
+  animation: cloud-scroll 30s linear infinite;
+  /* Promote to its own GPU layer so the tiled texture is rasterised once and
+     just translated — without this the repeating background repaints every
+     frame and the scroll stutters. */
+  will-change: transform;
+  backface-visibility: hidden;
+}
+@keyframes cloud-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ══ BACKGROUND 8 · Rope Weave (RARE) ══
+   Seamless rope texture scrolling top -> bottom. Vertical twin of Cloud Drift:
+   ::before is 200% tall, each tile = one container height, repeated, translated
+   from -50% to 0 so content drifts DOWNWARD. GPU-promoted from the start so it
+   stays smooth. Texture lives in /public/assets/26X/. */
+.bg-rope { background: oklch(0.35 0.03 60); }
+.bg-rope::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200%;
+  background-image: url("/assets/26X/rope.jpg");
+  background-size: 100% 50%;
+  background-repeat: repeat-y;
+  animation: rope-scroll 30s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+@keyframes rope-scroll {
+  from { transform: translate3d(0, -50%, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+/* ══ BACKGROUND 9 · Chrysanthemum (RARE) ══
+   Seamless floral texture scrolling DIAGONALLY (down-right). The ::before is a
+   2×2 grid of tiles (200% × 200%, each tile = one container), so the pattern
+   repeats on both axes; translating exactly one tile in each (from -50%,-50% to
+   0,0) drifts it down-right and loops seamlessly. GPU-promoted so it's smooth. */
+.bg-chrysanthemum {
+  /* Tile at the texture's NATIVE aspect (434:900 ≈ 1:2.07) via fixed-px tiles,
+     so the flowers aren't stretched wide. The layer is one tile larger than the
+     container and translates exactly one tile, so it still loops seamlessly. */
+  --tw: 72px;
+  --th: 149px; /* 72 * 900/434 ≈ 149 */
+  background: oklch(0.30 0.05 20);
+}
+.bg-chrysanthemum::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% + var(--tw));
+  height: calc(100% + var(--th));
+  background-image: url("/assets/26X/chrysanthemum.jpg");
+  background-size: var(--tw) var(--th);
+  background-repeat: repeat;
+  animation: mum-scroll 34s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+@keyframes mum-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(calc(-1 * var(--tw)), calc(-1 * var(--th)), 0); }
+}
+
+/* ══ BACKGROUND 10 · Logo Storm (LEGENDARY) ══
+   Dark crimson sky with the app logo raining down, each drop rotating. No
+   overflow:hidden here — the outer card wrapper clips (same smooth-scroll rule
+   as the other backgrounds). Drops start above the clip and fall past the
+   bottom; negative delays scatter them so none is seen to spawn. */
+.bg-logorain {
+  background:
+    radial-gradient(120% 85% at 50% -15%, oklch(0.5 0.2 8 / 0.85), transparent 60%),
+    radial-gradient(110% 90% at 50% 115%, oklch(0.32 0.16 350 / 0.8), transparent 70%),
+    oklch(0.17 0.09 5);
+}
+.bg-logorain .logo-drop {
+  position: absolute;
+  top: 0;
+  width: auto;
+  animation-name: logo-rain;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.3));
+}
+@keyframes logo-rain {
+  from { transform: translate3d(0, -40px, 0) rotate(0deg); }
+  to { transform: translate3d(0, 360px, 0) rotate(360deg); }
+}
+
+/* ══ Avatar ring — a band AROUND the avatar ══
+   The ring must be visible on a full-bleed profile photo at any size, so it
+   lives in padding AROUND the avatar. The opaque avatar sits on top (z-1) and
+   masks the ring's centre — so no CSS mask is needed, which also sidesteps a
+   mask + transform:rotate compositing quirk that froze the conic rings.
+   --ring-size = avatar px (set inline by AvatarRing); --band = ring thickness. */
+.avatar-ring {
+  --ring-size: 80px;
+  --band: max(3px, calc(var(--ring-size) * 0.12));
+  /* Snap the band to whole pixels so a fractional band can't offset the ring. */
+  --band: max(3px, round(calc(var(--ring-size) * 0.12), 1px));
+  /* The wrapper IS the avatar's box (inline-flex sizes to the avatar). Ring
+     layers hang off it with a SYMMETRIC negative inset, so the ring is centred
+     on the profile-picture circle by construction — no second box to re-align. */
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  line-height: 0;
+  isolation: isolate;
+}
+.avatar-ring__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  line-height: 0;
+}
+/* Every ring visual extends --band beyond the avatar on all sides (concentric)
+   and sits behind it; the opaque avatar masks the ring's centre. */
+.avatar-ring::before,
+.avatar-ring .ring-svg,
+.avatar-ring .comet {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--band));
+  z-index: 0;
+  border-radius: 999px;
+}
+
+/* RING 1 · Spectrum — rotating rainbow disc; avatar masks the centre. */
+.r-spectrum::before {
+  background: conic-gradient(#ff0059, #ffbe0b, #3bf0c0, #4361ee, #b5179e, #ff0059);
+  animation: spin-rotate 4s linear infinite !important;
+}
+
+/* RING 2 · Pulse Glow — solid brand band + pulsing outer glow. */
+.r-glow::before {
+  background: var(--primary);
+  box-shadow: 0 0 16px 3px color-mix(in oklch, var(--primary) 70%, transparent);
+  animation: glowpulse 2.2s ease-in-out infinite !important;
+}
+
+/* RING 3 · Dash Orbit — dashed svg circle in the band, rotating. */
+.r-dash .ring-svg {
+  /* iOS Safari won't stretch an absolutely-positioned SVG to its inset box
+     (it keeps the intrinsic 300×150), which threw the ring wildly off-centre.
+     Pin explicit dimensions to the full ring box so it fills on every engine. */
+  width: calc(var(--ring-size) + 2 * var(--band));
+  height: calc(var(--ring-size) + 2 * var(--band));
+  animation: spin-rotate 6s linear infinite !important;
+}
+
+/* RING 4 · Shimmer — brand band with a white highlight sweeping around. */
+.r-shimmer::before {
+  background: conic-gradient(var(--primary) 0deg, var(--primary) 285deg, #fff 330deg, var(--primary) 360deg);
+  animation: spin-rotate 3s linear infinite !important;
+}
+
+/* RING 5 · Comet — faint track + a dot orbiting the band. */
+.r-comet::before {
+  background: none;
+  border: max(1px, calc(var(--ring-size) * 0.02)) solid color-mix(in oklch, var(--primary) 35%, transparent);
+}
+.r-comet .comet {
+  background: none;
+  animation: spin-rotate 2.6s linear infinite !important;
+}
+.r-comet .comet i {
+  --dot: max(5px, calc(var(--ring-size) * 0.13));
+  position: absolute;
+  /* centre the dot within the band at the top of the orbit */
+  top: calc(var(--band) * 0.5 - var(--dot) / 2);
+  left: 50%;
+  width: var(--dot);
+  height: var(--dot);
+  margin-left: calc(var(--dot) / -2);
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 12px 3px color-mix(in oklch, var(--primary) 75%, transparent);
+}
+
+/* RING 6 · Breathe — gradient disc that scales/fades; avatar masks the centre. */
+.r-breathe::before {
+  background: linear-gradient(140deg, var(--primary), oklch(0.7 0.18 330));
+  animation: breathering 3s ease-in-out infinite !important;
+}
+
+/* RING 7 · Cloud Ring (RARE) — soft white cumulus puffs drifting around the
+   avatar. SVG sized to the full ring box (like dash); the blob group is blurred
+   into fluff and rotates very slowly so the clouds drift. */
+.r-cloudring .ring-svg {
+  width: calc(var(--ring-size) + 2 * var(--band));
+  height: calc(var(--ring-size) + 2 * var(--band));
+  animation: spin-rotate 44s linear infinite !important;
+}
+.r-cloudring .cloud-blobs {
+  fill: #fff;
+  /* Light blur keeps the individual puffs readable as cumulus lumps (a heavier
+     blur smooths them into a plain glowing ring); the drop-shadow adds the soft
+     white haze around them. */
+  filter: blur(0.9px) drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.6));
+}
+
+/* RING 8 · Rope Ring (RARE) — static rope-texture band around the avatar (the
+   same texture as the Rope Weave background; no animation, by request). The
+   shared .avatar-ring::before supplies the disc geometry; the avatar masks its
+   centre, leaving a rope band. */
+.r-ropering::before {
+  background-image: url("/assets/26X/rope.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+/* RING 9 · Chrysanthemum Ring (RARE) — static floral-texture band, same texture
+   as the Chrysanthemum background; no animation, by request. */
+.r-chrysanthemumring::before {
+  background-image: url("/assets/26X/chrysanthemum.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+/* RING 10 · Logo Orbit (LEGENDARY) — like Comet (faint brand track) but four
+   evenly-spaced app logos orbit the band instead of a single dot. The orbit
+   container spins; each logo counter-spins (reverse) to stay upright while it
+   orbits — centred via margin (not transform) so the counter-spin is free. */
+.r-logoring::before {
+  background: none;
+  border: max(1px, calc(var(--ring-size) * 0.02)) solid color-mix(in oklch, var(--primary) 35%, transparent);
+}
+.r-logoring .logo-orbit {
+  position: absolute;
+  inset: calc(-1 * var(--band));
+  /* Above the avatar (which is z-index 1) so the orbiting logos pass over the
+     profile image instead of behind it. */
+  z-index: 2;
+  animation: spin-rotate 9s linear infinite !important;
+}
+.r-logoring .ring-logo {
+  --lh: max(9px, calc(var(--ring-size) * 0.15));
+  --lw: calc(var(--lh) * 1.492); /* logo viewBox aspect 388:260 */
+  position: absolute;
+  height: var(--lh);
+  width: var(--lw);
+  animation: spin-rotate 9s linear infinite reverse !important;
+}
+.r-logoring .ring-logo--top {
+  top: calc(var(--band) * 0.5 - var(--lh) / 2);
+  left: 50%;
+  margin-left: calc(var(--lw) / -2);
+}
+.r-logoring .ring-logo--bottom {
+  bottom: calc(var(--band) * 0.5 - var(--lh) / 2);
+  left: 50%;
+  margin-left: calc(var(--lw) / -2);
+}
+.r-logoring .ring-logo--left {
+  left: calc(var(--band) * 0.5 - var(--lw) / 2);
+  top: 50%;
+  margin-top: calc(var(--lh) / -2);
+}
+.r-logoring .ring-logo--right {
+  right: calc(var(--band) * 0.5 - var(--lw) / 2);
+  top: 50%;
+  margin-top: calc(var(--lh) / -2);
+}
+
+/* ══ Rarity glow — shop item preview cards ══
+   Single source of truth for the className is RARITY_META in src/lib/cosmetics.ts.
+   Common is the 26X baseline (every current item) and must stay tasteful at
+   rest — a static, low-spread shadow, not a pulse. Rare/Legendary pulse a bit
+   stronger, same box-shadow-on-a-card shape as RING 2 · Pulse Glow above. */
+@keyframes rarity-rare-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px #d97706, 0 0 8px 1px color-mix(in oklch, #d97706 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 1px #d97706, 0 0 16px 4px color-mix(in oklch, #d97706 70%, transparent);
+  }
+}
+@keyframes rarity-legendary-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px var(--primary), 0 0 10px 2px color-mix(in oklch, var(--primary) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 1px var(--primary), 0 0 22px 6px color-mix(in oklch, var(--primary) 85%, transparent);
+  }
+}
+.rarity-common {
+  box-shadow: 0 0 0 1px color-mix(in oklch, #059669 40%, transparent), 0 0 6px 0 color-mix(in oklch, #059669 22%, transparent);
+}
+.rarity-rare {
+  animation: rarity-rare-pulse 2.6s ease-in-out infinite;
+}
+.rarity-legendary {
+  animation: rarity-legendary-pulse 2.1s ease-in-out infinite;
+}
+
+/* The Zigma — admin-only virtual title glow (22-UI-SPEC §3). Same var(--primary)
+   hue and easing as rarity-legendary, turned up on exactly two axes (1px -> 1.5px
+   ring, 10/22px -> 14/32px blur) and sped up 2.1s -> 1.6s. No new custom
+   property, no new colour. */
+@keyframes rarity-zigma-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1.5px var(--primary), 0 0 14px 3px color-mix(in oklch, var(--primary) 70%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 1.5px var(--primary), 0 0 32px 10px color-mix(in oklch, var(--primary) 95%, transparent);
+  }
+}
+.rarity-zigma {
+  animation: rarity-zigma-pulse 1.6s ease-in-out infinite;
+}
+
+/* ══ Lootbox chest — lightweight idle animation for the Open card icon.
+   Elaborate chest-open reveal art is Phase 18; this is a small, subtle rock. ══ */
+@keyframes chest-idle-lid {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-3deg); }
+}
+.chest-lid {
+  transform-origin: 6px 34px;
+  animation: chest-idle-lid 2.4s ease-in-out infinite;
+}
+
+/* ══ Lootbox reveal — Phase 18. Pure CSS keyframes driven by a `data-phase`
+   state machine (idle/arming/bursting/revealing/settled) set on the modal's
+   `.lootbox-stage` root, plus `data-rarity` (common/rare/legendary) for
+   escalation. No chained delay timers — every beat is a phase transition so
+   skip-to-settled and reduced-motion are just "stop matching a selector,"
+   never "cancel a running timer." Compositor-only: transform/opacity/filter/
+   clip-path/box-shadow/mask. See .planning/research/LOOTBOX-ANIMATIONS.md. */
+.lootbox-stage {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-in-quart: cubic-bezier(0.5, 0, 0.75, 0);
+  /* rarity defaults (common); the modal overrides via [data-rarity] below */
+  --rarity: #059669;
+  --anticipation: 300ms;
+}
+/* data-rarity sets the escalation params JS doesn't have to compute inline:
+   color, wind-up length, and steady-halo size (UI-SPEC §4/§5 table). */
+.lootbox-stage[data-rarity="common"] {
+  --rarity: #059669;
+  --anticipation: 300ms;
+  --halo-size: 8px;
+}
+.lootbox-stage[data-rarity="rare"] {
+  --rarity: #d97706;
+  --anticipation: 450ms;
+  --halo-size: 16px;
+}
+.lootbox-stage[data-rarity="legendary"] {
+  --rarity: var(--primary);
+  --anticipation: 650ms;
+  --halo-size: 32px;
+}
+
+/* Beat 1 — Anticipation: shake amplitude ramps up, chest coils down (scale),
+   charge glow builds under the lid in the rarity color. */
+@keyframes chest-shake {
+  0% { transform: translateX(0) rotate(0deg) scale(1); }
+  20% { transform: translateX(-1px) rotate(-0.6deg) scale(0.99); }
+  40% { transform: translateX(2px) rotate(0.8deg) scale(0.98); }
+  60% { transform: translateX(-3px) rotate(-1.1deg) scale(0.965); }
+  80% { transform: translateX(4px) rotate(1.4deg) scale(0.95); }
+  100% { transform: translateX(0) rotate(0deg) scale(0.94); }
+}
+@keyframes charge-glow {
+  0% { opacity: 0; filter: drop-shadow(0 0 0 var(--rarity)); }
+  100% { opacity: 1; filter: drop-shadow(0 0 24px var(--rarity)); }
+}
+.lootbox-stage[data-phase="arming"] .chest {
+  animation: chest-shake var(--anticipation) var(--ease-in-quart) forwards;
+  will-change: transform;
+}
+.lootbox-stage[data-phase="arming"] .chest__glow {
+  animation: charge-glow var(--anticipation) linear forwards;
+  will-change: opacity, filter;
+}
+
+/* Beat 2 — Burst: pop, white flash, screen shake on the stage wrapper (not
+   the backdrop), lid clips open. Light effect + confetti fire from JS. */
+@keyframes chest-pop {
+  0% { transform: scale(0.94); }
+  100% { transform: scale(1.08); }
+}
+@keyframes flash {
+  0% { opacity: 0; }
+  25% { opacity: var(--flash-peak, 0.5); }
+  100% { opacity: 0; }
+}
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, -3px); }
+  80% { transform: translate(2px, 3px); }
+}
+@keyframes lid-open {
+  to { clip-path: inset(0 0 100% 0); opacity: 0; }
+}
+.lootbox-stage[data-phase="bursting"] .chest {
+  animation: chest-pop 140ms var(--ease-out-expo) forwards;
+  will-change: transform;
+}
+.lootbox-stage[data-phase="bursting"] .flash {
+  animation: flash 200ms var(--ease-out-quart) forwards;
+}
+.lootbox-stage[data-phase="bursting"] .stage-shake {
+  animation: screen-shake 140ms linear;
+}
+.lootbox-stage[data-phase="bursting"] .chest-lid {
+  animation: lid-open 160ms var(--ease-out-quart) forwards;
+}
+
+/* Light effect by tier — a single vertical shaft (common/rare) or, for
+   legendary, a conic god-ray disc layered behind the shaft (UI-SPEC §4). */
+@keyframes shaft {
+  50% { transform: scaleY(1); opacity: 1; }
+  100% { opacity: 0.4; }
+}
+@keyframes beam-in {
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes beam-spin {
+  to { transform: scale(1) rotate(360deg); }
+}
+.shaft {
+  background: linear-gradient(to top, transparent, color-mix(in oklch, var(--rarity) 30%, transparent), transparent);
+  mask: linear-gradient(to top, transparent, #000 40%, transparent);
+  transform: scaleY(0);
+  transform-origin: bottom;
+}
+.beam {
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in oklch, var(--rarity) 10%, transparent) 6deg,
+    transparent 12deg,
+    transparent 18deg,
+    color-mix(in oklch, var(--rarity) 10%, transparent) 24deg,
+    transparent 30deg
+  );
+  mask: radial-gradient(circle, #000 0%, transparent 70%);
+  opacity: 0;
+  transform: scale(0.2) rotate(0deg);
+}
+.lootbox-stage[data-phase="bursting"] .shaft {
+  animation: shaft 450ms var(--ease-out-expo) forwards;
+}
+.lootbox-stage[data-phase="bursting"] .beam,
+.lootbox-stage[data-phase="revealing"] .beam {
+  animation:
+    beam-in 500ms var(--ease-out-expo) forwards,
+    beam-spin 8s linear infinite;
+}
+.lootbox-stage[data-phase="settled"] .beam,
+.lootbox-stage[data-phase="settled"] .shaft {
+  opacity: 0;
+  transition: opacity 350ms;
+}
+
+/* Beat 3 — Prize entrance: rises out of the chest with a de-blur, the
+   cheapest trick that reads as "materialized" not "slid in." */
+@keyframes prize-in {
+  0% { transform: translateY(40px) scale(0.6); opacity: 0; filter: blur(8px); }
+  60% { opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+}
+.lootbox-stage[data-phase="revealing"] .prize,
+.lootbox-stage[data-phase="settled"] .prize {
+  animation: prize-in 400ms var(--ease-out-quint) forwards;
+}
+
+/* Beat 4 — Settle: glow relaxes from the burst peak into a steady rarity
+   halo (size escalates with --halo-size) that persists while shown. */
+.lootbox-stage[data-phase="settled"] .prize {
+  box-shadow: 0 0 var(--halo-size, 8px) -2px var(--rarity), 0 0 calc(var(--halo-size, 8px) / 4) var(--rarity);
+  transition: box-shadow 300ms var(--ease-out-cubic);
+}
+
+/* ══ Reduced motion — the lootbox reveal deliberately animates for EVERYONE,
+   regardless of the OS reduced-motion setting (by request), matching the casino
+   `.game-motion` convention. globals.css exempts `.lootbox-stage` + descendants
+   from its blanket reduce rule, so the chest/reveal keyframes run unchanged
+   under reduced motion — no local skip block needed. iOS Low Power Mode /
+   Android battery saver both report reduce, and the reveal is the reward
+   moment the user spent ZP on, so freezing it would look broken, not gentler.
+   The browsing-state contents strip no longer animates at all (manual scroll,
+   UI-SPEC §7), so there is nothing left to exempt for it. ══ */
+
+/* ══ Inventory disclosure chevron (profile Inventory tab) ══
+   Child combinators, not Tailwind's `group-open`, because these <details> nest
+   three deep (collection > kind > item): a descendant rule like `.group:open &`
+   would rotate every chevron underneath an open ancestor, not just its own. ══ */
+.fold-chevron {
+  transition: transform 200ms var(--ease-out-cubic, ease-out);
+}
+details[open] > summary > .fold-chevron {
+  transform: rotate(180deg);
+}
