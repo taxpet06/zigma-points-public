@@ -1,0 +1,1148 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Scrollable without a visible scrollbar — keeps overflow areas (dialogs, etc.)
+   functional on touch devices while staying visually clean. */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Slim, always-present scrollbar for scrollable dialogs. A hidden scrollbar makes
+   scrollable content look like it ends where the fold is, and leaves nothing to grab
+   with a mouse. scrollbar-gutter: stable reserves the track so content does not shift
+   sideways the moment a dialog becomes scrollable. */
+/* While ANY dialog is open, kill the browser's overscroll gesture on the page behind it.
+   Radix already locks body scroll, but a scroll lock does not stop pull-to-refresh or the
+   rubber-band bounce — on a phone you could still yank the feed down and refresh the app
+   out from under an open post composer, losing whatever was typed. Keyed off the overlay's
+   own attribute rather than a Radix internal, so it survives a library upgrade. */
+body:has([data-dialog-overlay]) {
+  overscroll-behavior: none;
+}
+
+@utility dialog-scroll {
+  /* `scrollbar-width: thin` only — deliberately NO ::-webkit-scrollbar width and no
+     scrollbar-gutter. Forcing a webkit width turns a mobile OVERLAY scrollbar into a
+     classic one that eats 8px of content width, which was enough to clip Dice's
+     `9900.0000` field at 360px. This way desktop gets a thin grabbable bar and mobile
+     keeps its overlay bar, and neither steals layout width. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.53 0.235 5);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0.008 5);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0.008 5);
+  --muted-foreground: oklch(0.556 0.008 5);
+  --accent: oklch(0.94 0.015 5);
+  --accent-foreground: oklch(0.145 0 0);
+  --destructive: oklch(0.52 0.19 50);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0.005 5);
+  --input: oklch(0.922 0.005 5);
+  --ring: oklch(0.53 0.235 5);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0.005 5);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.53 0.235 5);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.94 0.015 5);
+  --sidebar-accent-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.922 0.005 5);
+  --sidebar-ring: oklch(0.53 0.235 5);
+
+  /* Semantic z-index scale */
+  --z-dropdown: 51;
+  --z-sticky: 100;
+  --z-modal-backdrop: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-tooltip: 500;
+
+  /* Motion easing — natural deceleration, no bounce */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Outcome-reveal duration for every casino game in the milestone (Phase 10) —
+     a round result needs a beat longer than dropdown chrome to register as a
+     *result*, not a repaint. Collapses to 0ms under prefers-reduced-motion via
+     the blanket transition-duration override below. */
+  --duration-settle: 400ms;
+}
+
+.dark {
+  --background: oklch(0.145 0.010 5);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0.012 5);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0.012 5);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.53 0.235 5);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0.012 5);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0.012 5);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0.012 5);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.73 0.18 57);
+  --destructive-foreground: oklch(0.145 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.68 0.20 5);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0.012 5);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.53 0.235 5);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0.012 5);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.68 0.20 5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /* Base background lives on <html> so the fixed pattern layer (a body child with
+     z-index:-1) renders above it; <body> is transparent so the pattern shows through. */
+  html {
+    @apply font-sans bg-background;
+    /* Suppress the browser's native pull-to-refresh / overscroll glow so the
+       app's own PullToRefresh indicator is the only one shown. */
+    overscroll-behavior-y: none;
+  }
+  body {
+    @apply text-foreground;
+    background: transparent;
+    padding-bottom: env(safe-area-inset-bottom);
+    overscroll-behavior-y: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Animated background — a grid pattern (magicui-style) that drifts diagonally
+   from the top-right toward the bottom-left, very slowly. Pure CSS: the grid
+   lines live on `.app-bg::before` and translate one cell over the loop (period
+   == cell size, so it's seamless); the purple-red ambient glows sit on `.app-bg`
+   itself and stay put. Edge-masked so it reads as ambient light, not wallpaper;
+   cards sit opaque on top, so the feed stays crisp. prefers-reduced-motion
+   freezes the drift via the global reduce rule below.
+   --------------------------------------------------------------------------- */
+.app-bg {
+  --grid-cell: 40px;
+  /* How many cells the pattern drifts per loop. Also the distance between each
+     square and its seamless-loop twin — keep it large enough that the twin
+     lands in a different region, not an adjacent neighbour. */
+  --drift-cells: 8;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  /* Purple-reddish ambient glows — brighter toward the top-right (drift origin) */
+  background:
+    radial-gradient(58% 52% at 88% 6%, oklch(0.90 0.075 350 / 0.50) 0%, transparent 60%),
+    radial-gradient(70% 60% at 10% 96%, oklch(0.91 0.06 330 / 0.42) 0%, transparent 64%);
+  -webkit-mask-image: radial-gradient(135% 125% at 50% 20%, #000 0%, rgba(0, 0, 0, 0.65) 62%, transparent 100%);
+  mask-image: radial-gradient(135% 125% at 50% 20%, #000 0%, rgba(0, 0, 0, 0.65) 62%, transparent 100%);
+}
+.dark .app-bg {
+  background-color: oklch(0.13 0.014 350);
+  background-image:
+    radial-gradient(58% 52% at 88% 6%, oklch(0.42 0.15 355 / 0.32) 0%, transparent 60%),
+    radial-gradient(70% 60% at 10% 96%, oklch(0.36 0.14 330 / 0.28) 0%, transparent 64%);
+}
+
+/* The grid + light-up squares ride a skewed, over-scaled plane so the whole
+   pattern is tilted (the magicui look). Skew/scale are static. Over-inset +
+   scale so the tilt never exposes an uncovered edge (the parent's edge mask
+   hides the rest). */
+.app-bg-plane {
+  position: absolute;
+  inset: -15%;
+  overflow: hidden;
+  transform: skewY(-11deg) scale(1.12);
+}
+/* Everything that moves rides this track: a slow diagonal drift (top-right →
+   bottom-left, one cell per loop). Grid and squares translate together, so the
+   squares stay locked to their cells. Seamless because the grid is periodic and
+   the squares are rendered twice (the `--dup` copy sits one cell up-right), so
+   as one set drifts off, the other takes its place. Runs always — see the
+   reduced-motion override at the bottom of this file. */
+.app-bg-track {
+  position: absolute;
+  inset: 0;
+  animation: grid-drift 60s linear infinite;
+  will-change: transform;
+}
+.app-bg-track::before {
+  content: "";
+  position: absolute;
+  /* Overscan by the drift distance (+1) so the diagonal drift never exposes a
+     bare edge. Whole cells, so the grid lines stay aligned to the squares. */
+  inset: calc((var(--drift-cells) + 1) * var(--grid-cell) * -1);
+  background-image:
+    linear-gradient(to right, oklch(0.55 0.16 350 / 0.12) 2px, transparent 2px),
+    linear-gradient(to bottom, oklch(0.55 0.16 350 / 0.12) 2px, transparent 2px);
+  background-size: var(--grid-cell) var(--grid-cell);
+}
+.dark .app-bg-track::before {
+  background-image:
+    linear-gradient(to right, oklch(0.62 0.15 350 / 0.14) 2px, transparent 2px),
+    linear-gradient(to bottom, oklch(0.62 0.15 350 / 0.14) 2px, transparent 2px);
+}
+@keyframes grid-drift {
+  to {
+    transform: translate(
+      calc(var(--drift-cells) * var(--grid-cell) * -1),
+      calc(var(--drift-cells) * var(--grid-cell))
+    );
+  }
+}
+/* The square field, rendered twice by <AppBackdrop>; the `--dup` copy is shifted
+   `--drift-cells` up-right (the inverse of the drift) so the loop is seamless.
+   The offset is several cells, so a square and its twin never sit as adjacent
+   neighbours. */
+.app-bg-cells {
+  position: absolute;
+  inset: 0;
+}
+.app-bg-cells--dup {
+  transform: translate(
+    calc(var(--drift-cells) * var(--grid-cell)),
+    calc(var(--drift-cells) * var(--grid-cell) * -1)
+  );
+}
+
+/* Squares that light up and fade out, staggered — the magicui "blink". Position
+   and timing come from inline vars set in <AppBackdrop>. */
+.app-cell {
+  position: absolute;
+  width: var(--grid-cell);
+  height: var(--grid-cell);
+  background: oklch(0.60 0.16 350 / 0.45);
+  box-shadow: 0 0 14px 1px oklch(0.60 0.16 350 / 0.35);
+  opacity: 0;
+  animation: cell-pop var(--pop-dur, 8s) var(--ease-out-quint) var(--pop-delay, 0s) infinite;
+}
+.dark .app-cell {
+  background: oklch(0.66 0.17 350 / 0.5);
+  box-shadow: 0 0 16px 1px oklch(0.66 0.17 350 / 0.4);
+}
+@keyframes cell-pop {
+  0%, 100% {
+    opacity: 0;
+  }
+  45%, 55% {
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Entrance: cards / panels rise + fade in. `backwards` fill keeps staggered
+   items hidden until their turn, but with no animation support the element is
+   simply visible (resting opacity:1) — the reveal only ever enhances.
+   --------------------------------------------------------------------------- */
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-card-rise {
+  animation: card-rise 0.5s var(--ease-out-quint) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+/* Bottom bar gets out of the way whenever any Radix Dialog is open (create post,
+   games, task modals — anything). react-remove-scroll sets body[data-scroll-locked]
+   for the whole open lifetime, so one selector covers every modal, present and
+   future, with no JS wiring. Slides down + fades + blurs to mask the exit; the
+   global reduced-motion rule above already collapses this to an instant cut. */
+.bottom-bar-pill {
+  transition:
+    transform 0.34s var(--ease-out-quint),
+    opacity 0.28s var(--ease-out-quint),
+    filter 0.28s var(--ease-out-quint);
+}
+body[data-scroll-locked] .bottom-bar-pill {
+  transform: translateY(140%);
+  opacity: 0;
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wordle motion. Tiles carry --reveal-bg (the scored colour) and --col (column
+   index, drives the stagger). Because every animation ends on --reveal-bg with
+   fill:both, the reduced-motion rule below collapses them to an instant colour
+   snap — the board stays fully playable, just without the choreography.
+   --------------------------------------------------------------------------- */
+@keyframes wordle-pop {
+  from { transform: scale(0.9); }
+  50%  { transform: scale(1.06); }
+  to   { transform: scale(1); }
+}
+.animate-wordle-pop {
+  animation: wordle-pop 110ms var(--ease-out-quint);
+}
+
+@keyframes wordle-flip {
+  0%     { transform: rotateX(0deg);   background: transparent; border-color: var(--tile-line, rgba(255,255,255,0.16)); }
+  49.99% { transform: rotateX(-90deg); background: transparent; border-color: var(--tile-line, rgba(255,255,255,0.16)); }
+  50%    { background: var(--reveal-bg); border-color: var(--reveal-bg); }
+  100%   { transform: rotateX(0deg);   background: var(--reveal-bg); border-color: var(--reveal-bg); }
+}
+.animate-wordle-flip {
+  animation: wordle-flip 540ms var(--ease-out-quint) both;
+  animation-delay: calc(var(--col, 0) * 230ms);
+}
+
+@keyframes wordle-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.animate-wordle-shake {
+  animation: wordle-shake 460ms ease-in-out;
+}
+
+/* Win: a single decelerating scale pulse per tile, staggered across the row.
+   No vertical hop / overshoot — a smooth emphasis, not a bounce. */
+@keyframes wordle-win {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.animate-wordle-win {
+  animation: wordle-win 480ms var(--ease-out-quint);
+  animation-delay: calc(var(--col, 0) * 80ms);
+}
+
+/* ---------------------------------------------------------------------------
+   MineZweeper motion. Cells carry --d (their index in the cascade's BFS order,
+   which is what makes a flood-fill radiate outward from the tapped cell instead
+   of appearing all at once) and --r / --c (row and column, driving the win
+   sweep's diagonal wave).
+
+   This is a CASUAL game, so unlike the casino it is deliberately NOT tagged
+   .game-motion — none of this is load-bearing, the board is fully playable
+   without a single frame of it. That makes the reduced-motion rule below a
+   correctness constraint, not a courtesy: it collapses animation-duration to
+   0.01ms but leaves animation-DELAY alone, so a cell that starts at opacity 0
+   and waits out a 364ms stagger renders as a hole in the board. Two rules
+   follow from that, and both are load-bearing:
+
+     1. every keyframe here ends on the cell's RESTING visual state (the same
+        colours the utility classes give it), with fill:both so the collapsed
+        animation lands on that state rather than on the `from` frame;
+     2. the media query at the end of this block zeroes every delay.
+
+   Result under prefers-reduced-motion: the board simply appears, correct and
+   complete, with no missing colours and nothing stuck mid-animation.
+   --------------------------------------------------------------------------- */
+
+/* Unrevealed tile: a bevel, not a border — one box-shadow does the raised look
+   the classic game gets from two-tone borders, without eating 2px of the 34px. */
+.mz-tile {
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.22),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.38);
+  transition: filter 120ms var(--ease-out-quint);
+}
+
+/* The cascade. Overshoots slightly, settles on scale(1)/opacity 1 — the resting
+   state. --d is capped so a 200-cell flood-fill still finishes in under 640ms
+   instead of trickling out over five seconds. */
+@keyframes mz-reveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.mz-cell-reveal {
+  animation: mz-reveal 260ms var(--ease-out-quint) both;
+  animation-delay: calc(min(var(--d, 0), 14) * 26ms);
+}
+
+/* Planting a flag: the icon swings in, and the tile pushes out one ring pulse
+   that fades to transparent — the resting bevel is restated in the last frame
+   so the fill can't strip it. */
+@keyframes mz-flag {
+  0% {
+    transform: scale(0) rotate(-35deg);
+  }
+  55% {
+    transform: scale(1.15) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+.mz-flag-icon {
+  animation: mz-flag 320ms var(--ease-out-quint) both;
+}
+
+@keyframes mz-flag-ring {
+  0% {
+    box-shadow:
+      inset 1px 1px 0 rgba(255, 255, 255, 0.22),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.38),
+      0 0 0 0 rgba(239, 68, 68, 0.6);
+  }
+  100% {
+    box-shadow:
+      inset 1px 1px 0 rgba(255, 255, 255, 0.22),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.38),
+      0 0 0 11px rgba(239, 68, 68, 0);
+  }
+}
+.mz-tile-flagged {
+  animation: mz-flag-ring 420ms var(--ease-out-quint) both;
+}
+
+/* The mine you actually hit. Ends on bg-red-600 (#dc2626) with a low glow —
+   exactly the class the tile already carries, so the collapsed version is just
+   "the mine is red". The other mines reveal behind it with mz-reveal, staggered
+   by index, so the board unzips rather than dumping all 40 at once. */
+@keyframes mz-boom {
+  0% {
+    transform: scale(0.6);
+    background-color: #7f1d1d;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+  35% {
+    transform: scale(1.35);
+    background-color: #fca5a5;
+    box-shadow: 0 0 22px 8px rgba(239, 68, 68, 0.85);
+  }
+  70% {
+    transform: scale(0.96);
+    background-color: #ef4444;
+    box-shadow: 0 0 14px 3px rgba(239, 68, 68, 0.5);
+  }
+  100% {
+    transform: scale(1);
+    background-color: #dc2626;
+    box-shadow: 0 0 8px 1px rgba(239, 68, 68, 0.35);
+  }
+}
+.mz-boom {
+  z-index: 1;
+  animation: mz-boom 520ms var(--ease-out-quint) both;
+}
+
+/* The board region reacts to the hit: a short shake plus an inset ring blasting
+   outward. Both live on the VIEWPORT, never on the board node — the board's
+   transform is written by the pan/pinch handler, and an animation on it would
+   fight (and win against) the player's own view. The ring is a pseudo-element
+   for the same reason the shake isn't: the viewport's ring-1 outline is itself a
+   box-shadow, and animating box-shadow on the element would erase it. */
+@keyframes mz-shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  18% {
+    transform: translate3d(-7px, 0, 0);
+  }
+  42% {
+    transform: translate3d(6px, 0, 0);
+  }
+  66% {
+    transform: translate3d(-3px, 0, 0);
+  }
+  84% {
+    transform: translate3d(2px, 0, 0);
+  }
+}
+@keyframes mz-shock-ring {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0.55);
+  }
+  100% {
+    box-shadow: inset 0 0 0 96px rgba(239, 68, 68, 0);
+  }
+}
+.mz-shock {
+  animation: mz-shake 600ms var(--ease-out-quint) both;
+}
+.mz-shock::after,
+.mz-win-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.mz-shock::after {
+  animation: mz-shock-ring 600ms var(--ease-out-quint) both;
+}
+
+/* Clearing the board. Every safe cell replays its reveal together — one beat that
+   says "the board is complete" — and then an emerald pulse rolls across on the
+   --r + --c diagonal, followed by a glow on the viewport. Both pulses start AND
+   end on the cell's resting fill (zinc-900), so the collapsed version is a board
+   that has simply finished. ponytail: no confetti — canvas-confetti is wired to
+   the lootbox modal's own scoped canvas, and standing one up for a casual game
+   is more surface than the sweep is worth. */
+@keyframes mz-win-pulse {
+  0% {
+    background-color: #18181b;
+    transform: scale(1);
+  }
+  40% {
+    background-color: #059669;
+    transform: scale(1.14);
+  }
+  100% {
+    background-color: #18181b;
+    transform: scale(1);
+  }
+}
+.mz-cell-win {
+  animation:
+    mz-reveal 260ms var(--ease-out-quint) both,
+    mz-win-pulse 620ms var(--ease-out-quint) both;
+  animation-delay: 0ms, calc(260ms + (var(--r, 0) + var(--c, 0)) * 18ms);
+}
+
+@keyframes mz-win-glow {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+  45% {
+    box-shadow: inset 0 0 42px 6px rgba(16, 185, 129, 0.45);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+.mz-win-glow::after {
+  animation: mz-win-glow 900ms var(--ease-out-quint) 320ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The rule below collapses duration but not delay, and a delayed fill:both
+     animation holds its `from` frame for the whole delay — which for the cascade
+     is an invisible cell. Zero every mz delay so the collapse actually lands on
+     the resting state immediately. Without this the board renders as holes. */
+  .mz-cell-reveal,
+  .mz-cell-win,
+  .mz-flag-icon,
+  .mz-tile-flagged,
+  .mz-boom,
+  .mz-shock,
+  .mz-shock::after,
+  .mz-win-glow::after {
+    animation-delay: 0s !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Sequence Recall motion (21-UI-SPEC.md §7). The tile blink is a
+   GAMEPLAY-CRITICAL signal — which tile is "hot" right now — not decoration,
+   so it follows the MineZweeper convention above, never the .game-motion
+   opt-out the casino games use below. Nothing in this block is tagged
+   .game-motion.
+
+   The ON/OFF timing of a blink is owned by JS class swaps in the game
+   component (setTimeout/interval logic), never by animation-duration. Each
+   class here only supplies a short transition POLISH into/out of its state;
+   collapsing that polish under reduced motion can never make a tile fail to
+   light up, because the visibility window itself is JS-driven, not CSS-timed.
+   Every keyframe below ends on its own resting visual state with fill:both,
+   and (same rule as the mz-* block above) the reduced-motion query at the
+   end of this block zeroes animation-DELAY only, never duration — a delayed
+   fill:both animation holds its `from` frame for the whole delay, which for
+   a blink would mean the tile never visibly lights up at all. */
+
+/* Idle-tile bevel (21-UI-SPEC.md §5, "one step darker" than .mz-tile above).
+   This MUST be a class, not an inline `style.boxShadow` — an inline
+   box-shadow declaration always wins the cascade over any external-
+   stylesheet box-shadow regardless of specificity, which silently made the
+   tile's keyboard focus ring invisible (found by the 21-10-PLAN.md Gate C
+   UAT). Moving it to a class alone is not enough, though: Tailwind wraps
+   every utility (including the tile's `focus-visible:ring-2` utility) inside
+   `@layer utilities`, and per the CSS Cascade Layers spec an UNlayered rule
+   always wins over a layered one regardless of specificity or source order —
+   so this class must explicitly join the SAME `utilities` layer Tailwind's
+   `@import "tailwindcss"` already declares, letting ordinary specificity
+   decide (the ring's `:focus-visible` pseudo-class selector has higher
+   specificity than this plain class, so it wins once both are layered). */
+@layer utilities {
+  .sr-tile-bevel {
+    box-shadow:
+      inset 1px 1px 0 rgba(255, 255, 255, 0.14),
+      inset -1px -1px 0 rgba(0, 0, 0, 0.4);
+  }
+}
+
+@keyframes sr-blink-on {
+  0% {
+    background-color: #3f3f46;
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+  }
+  100% {
+    background-color: #F43F5E;
+    box-shadow: 0 0 18px 4px rgba(244, 63, 94, 0.65);
+  }
+}
+.sr-tile-on {
+  animation: sr-blink-on 120ms var(--ease-out-quint) both;
+}
+
+@keyframes sr-blink-off {
+  0% {
+    background-color: #F43F5E;
+    box-shadow: 0 0 18px 4px rgba(244, 63, 94, 0.65);
+  }
+  100% {
+    background-color: #27272a;
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+  }
+}
+.sr-tile-off {
+  animation: sr-blink-off 150ms var(--ease-out-quint) both;
+}
+
+@keyframes sr-correct {
+  0% {
+    background-color: #27272a;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+  50% {
+    background-color: #10b981;
+    box-shadow: 0 0 14px 3px rgba(16, 185, 129, 0.5);
+  }
+  100% {
+    background-color: #27272a;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+.sr-tile-correct {
+  animation: sr-correct 150ms var(--ease-out-quint) both;
+}
+
+/* Duration matches mz-boom's 520ms, and the peak color is the same red
+   family — wrong-tile and timeout share this one class (21-UI-SPEC.md §5). */
+@keyframes sr-wrong {
+  0% {
+    background-color: #27272a;
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+  35% {
+    background-color: #dc2626;
+    box-shadow: 0 0 22px 6px rgba(220, 38, 38, 0.7);
+  }
+  100% {
+    background-color: #27272a;
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+}
+.sr-tile-wrong {
+  animation: sr-wrong 520ms var(--ease-out-quint) both;
+}
+
+/* The non-verbal "now" signal fired on the grid container the instant the
+   input window arms — a single outward ring pulse in brand rose. */
+@keyframes sr-go-cue {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(244, 63, 94, 0.6);
+  }
+  100% {
+    box-shadow: inset 0 0 0 24px rgba(244, 63, 94, 0);
+  }
+}
+.sr-go-cue {
+  animation: sr-go-cue 200ms var(--ease-out-quint) both;
+}
+
+.sr-tier-banner {
+  animation: sr-tier-banner 420ms var(--ease-out-quint) both;
+}
+@keyframes sr-tier-banner {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Same reasoning as the mz-* block above: zero every sr delay (never a
+     duration override) so a blink's collapsed animation lands on its target
+     state immediately instead of holding the `from` frame for the delay. */
+  .sr-tile-on,
+  .sr-tile-off,
+  .sr-tile-correct,
+  .sr-tile-wrong,
+  .sr-go-cue,
+  .sr-tier-banner {
+    animation-delay: 0s !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Three subtrees animate regardless of the OS reduced-motion setting, by request:
+       .cosmetic-motion — decorative motion the user paid ZP for (CardBackground /
+                          AvatarRing roots, their descendants and pseudos)
+       .game-motion     — the casino games. The animation IS the game: a Plinko ball
+                          that teleports or a wheel that snaps has nothing left to
+                          show. Note that iOS Low Power Mode and Android battery
+                          saver both report prefers-reduced-motion: reduce, so
+                          without this opt-out the games look broken on a phone
+                          that is merely low on battery.
+       .lootbox-stage   — the lootbox reveal (chest open, confetti, prize marquee).
+                          The reveal IS the reward moment the user spent ZP on; by
+                          request it plays for everyone regardless of the setting,
+                          matching the casino convention above.
+       .chest-lid       — the lootbox chest's idle lid bob, so the chest keeps
+                          breathing on the shop cards too (outside .lootbox-stage).
+     Everything else still respects the setting. */
+  *:not(.cosmetic-motion, .cosmetic-motion *, .game-motion, .game-motion *, .lootbox-stage, .lootbox-stage *, .chest-lid),
+  *:not(.cosmetic-motion, .cosmetic-motion *, .game-motion, .game-motion *, .lootbox-stage, .lootbox-stage *, .chest-lid)::before,
+  *:not(.cosmetic-motion, .cosmetic-motion *, .game-motion, .game-motion *, .lootbox-stage, .lootbox-stage *, .chest-lid)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* The backdrop is the app's signature and animates regardless of the OS
+     reduced-motion setting (by request). Re-assert past the blanket rule above
+     — higher specificity + !important wins. */
+  .app-bg-track {
+    animation-duration: 60s !important;
+    animation-iteration-count: infinite !important;
+  }
+  .app-cell {
+    animation-duration: var(--pop-dur, 8s) !important;
+    animation-delay: var(--pop-delay, 0s) !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Blackjack table atmosphere + deal / hit / banner motion
+   --------------------------------------------------------------------------- */
+.bj-felt {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(212, 175, 55, 0.14), transparent 55%),
+    radial-gradient(90% 70% at 50% 100%, rgba(0, 0, 0, 0.35), transparent 50%),
+    linear-gradient(165deg, #0d5c3d 0%, #0a4a32 40%, #083d2a 100%);
+}
+.bj-felt-texture {
+  background-image: var(--bj-felt-url, none);
+  background-size: cover;
+  background-position: center;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+@keyframes bj-deal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(42px, -56px, 0) rotate(-12deg) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0) scale(1);
+  }
+}
+@keyframes bj-hit-in {
+  from {
+    opacity: 0;
+    transform: translate3d(28px, -36px, 0) rotate(8deg) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translate3d(-2px, 2px, 0) rotate(-1deg) scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0) scale(1);
+  }
+}
+.bj-card-deal {
+  animation: bj-deal-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.bj-card-hit {
+  animation: bj-hit-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes bj-banner-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -42%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.bj-banner {
+  left: 50%;
+  right: auto;
+  width: calc(100% - 1.5rem);
+  max-width: 20rem;
+  transform: translate(-50%, -50%);
+  animation: bj-banner-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.bj-total-pill {
+  animation: bj-total-pulse 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes bj-total-pulse {
+  from { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  to { transform: scale(1); }
+}
+@keyframes bj-flash-win {
+  0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+  40% { box-shadow: inset 0 0 56px 0 rgba(16, 185, 129, 0.4); }
+}
+@keyframes bj-flash-lose {
+  0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+  40% { box-shadow: inset 0 0 56px 0 rgba(239, 68, 68, 0.35); }
+}
+@keyframes bj-flash-push {
+  0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+  40% { box-shadow: inset 0 0 48px 0 rgba(148, 163, 184, 0.35); }
+}
+.bj-flash-win {
+  animation: bj-flash-win 700ms ease-out;
+}
+.bj-flash-lose {
+  animation: bj-flash-lose 700ms ease-out;
+}
+.bj-flash-push {
+  animation: bj-flash-push 700ms ease-out;
+}
+.bj-chip {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* ---------------------------------------------------------------------------
+   JJ — the petting hand. The pet clip (3.03s) is just JJ tilting his head up;
+   the hand that does the petting is this overlay, positioned over his head in
+   the 9/16 frame. Mounted only while that clip plays, so mounting IS the
+   trigger — no JS timers, and it can't desync from the video by more than the
+   autoplay latency. Per-keyframe easing: ease-out on the swoop in (the moment
+   you're watching), ease-in-out on the three strokes, quick exit.
+   --------------------------------------------------------------------------- */
+@keyframes jj-pet-hand {
+  0% {
+    opacity: 0;
+    transform: translate(34%, -170%) rotate(20deg);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  /* Three strokes: lift back off the crown, press down again. */
+  30% { transform: translate(-10%, -20%) rotate(-9deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  42% { transform: translate(0, 0) rotate(0deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  54% { transform: translate(-10%, -20%) rotate(-9deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  66% { transform: translate(0, 0) rotate(0deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  78% { transform: translate(-10%, -20%) rotate(-9deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  86% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(30%, -160%) rotate(18deg);
+  }
+}
+.jj-pet-hand {
+  /* Sized and placed against the video box: the heel of the palm rests on JJ's
+     hair, which sits around a third of the way down the 9/16 frame. 2.6s against
+     a 3.03s clip, so the hand is always gone before the video unmounts. */
+  position: absolute;
+  left: 24%;
+  top: 34%;
+  width: 42%;
+  aspect-ratio: 1;
+  color: #fff;
+  filter: drop-shadow(0 3px 5px rgb(0 0 0 / 0.55));
+  pointer-events: none;
+  animation: jj-pet-hand 2.6s both;
+}
+/* Upright, as lucide ships it — a hand turned fingers-down reads as an upside-down
+   icon rather than a hand, and the heel of the palm is the part that should land on
+   his hair anyway. Sizing lives here, not as a utility on the icon, so the wrapper
+   keeps sole ownership of `transform`. */
+.jj-pet-hand svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+   Bomb AXA (.bx-*). Everything here is inside .game-motion, so it survives
+   prefers-reduced-motion the way the casino games do — the throw and its blast
+   ARE the game, and freezing them leaves nothing on screen to read.
+
+   The flight itself is NOT here: it's a CSS transition set inline per bomb,
+   because the landing point is different every throw and a keyframe can't take
+   an argument. This block is the two things that are the same every time.
+   --------------------------------------------------------------------------- */
+
+/* Fuse spark on a bomb in the air. */
+@keyframes bx-fuse {
+  0%,
+  100% {
+    opacity: 1;
+    r: 1.1;
+  }
+  50% {
+    opacity: 0.45;
+    r: 1.6;
+  }
+}
+.bx-fuse {
+  animation: bx-fuse 260ms ease-in-out infinite;
+}
+
+/* A hit. Five layers on four different curves — sparks out, orange spikes, yellow
+   spikes, a white core, then smoke. Each is drawn at the bomb's arrival scale (the
+   parent <g> carries it) and turned by a random spin, so a far explosion is a small
+   one and no two are the same stamp.
+
+   The overshoot on the spikes is the cartoon part: they punch past full size and
+   snap back rather than easing in, which is what separates a KAPOW from a circle
+   that got bigger. Every layer here is transform-box: fill-box so it scales about
+   its own centre, not the viewBox origin. */
+.bx-burst,
+.bx-burst-in,
+.bx-flash,
+.bx-sparks,
+.bx-smoke,
+.bx-puff {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes bx-burst {
+  0% {
+    transform: scale(0.1) rotate(-35deg);
+    opacity: 1;
+  }
+  35% {
+    transform: scale(1.15) rotate(6deg);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(0.98) rotate(0deg);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.3) rotate(14deg);
+    opacity: 0;
+  }
+}
+.bx-burst {
+  animation: bx-burst 460ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+/* Counter-rotating, so the two star layers grind against each other instead of
+   moving as one shape. */
+@keyframes bx-burst-in {
+  0% {
+    transform: scale(0.1) rotate(30deg);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(1.1) rotate(-8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.75) rotate(-18deg);
+    opacity: 0;
+  }
+}
+.bx-burst-in {
+  animation: bx-burst-in 400ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+/* The white core is the shortest thing on screen — it's the flash, not the fire. */
+@keyframes bx-flash {
+  0% {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+.bx-flash {
+  animation: bx-flash 180ms ease-out both;
+}
+
+@keyframes bx-sparks {
+  0% {
+    transform: scale(0.25);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.bx-sparks {
+  animation: bx-sparks 520ms var(--ease-out-quint) both;
+}
+
+/* Smoke outlives the fire and drifts up. --i staggers the three puffs so they
+   billow rather than pulse in unison. */
+@keyframes bx-smoke {
+  0% {
+    transform: translateY(0) scale(0.3);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(-7px) scale(1.5);
+    opacity: 0;
+  }
+}
+.bx-smoke {
+  animation: bx-smoke 620ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 70ms + 90ms);
+}
+
+/* A miss: three grey puffs, no fire and no spikes, so a hit and a miss are never
+   confusable at a glance. */
+@keyframes bx-puff {
+  0% {
+    transform: translateY(0) scale(0.2);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-4px) scale(1.5);
+    opacity: 0;
+  }
+}
+.bx-puff {
+  animation: bx-puff 480ms var(--ease-out-quint) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+/* Field kick on a connect. Small — it fires up to twelve times a run. */
+@keyframes bx-shock {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-2px, 1px, 0);
+  }
+  45% {
+    transform: translate3d(2px, -1px, 0);
+  }
+  70% {
+    transform: translate3d(-1px, 0, 0);
+  }
+}
+.bx-shock {
+  animation: bx-shock 380ms var(--ease-out-quint) both;
+}

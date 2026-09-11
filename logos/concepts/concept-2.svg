@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="tileGrad" x1="60" y1="40" x2="452" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F43F5E"/>
+      <stop offset="0.42" stop-color="#E11D48"/>
+      <stop offset="0.78" stop-color="#B81A3C"/>
+      <stop offset="1" stop-color="#7C1428"/>
+    </linearGradient>
+  </defs>
+
+  <g id="tile">
+    <rect x="16" y="16" width="480" height="480" rx="116" ry="116" fill="url(#tileGrad)"/>
+  </g>
+
+  <g id="mark" fill="#FFF5F6">
+    <!-- C: open ring. cap height y=104..408 (center y=256, outer r=152, stroke 64 -> inner r=88).
+         Mouth opens toward the P with rounded terminals. -->
+    <path d="M218 178
+             A 88 88 0 1 0 218 334
+             A 32 32 0 0 1 218 398
+             A 152 152 0 1 1 218 114
+             A 32 32 0 0 1 218 178 Z"/>
+
+    <!-- P: same cap height y=104..408, same 64 stroke weight, rounded terminals.
+         Stem on the left, bowl (counter) at the top. -->
+    <!-- Stem -->
+    <rect x="296" y="104" width="64" height="304" rx="32" ry="32"/>
+    <!-- Bowl: outer arc back to stem, with rounded join; counter stays open -->
+    <path d="M328 104
+             h36
+             a92 92 0 0 1 0 184
+             h-36
+             a32 32 0 0 1 0 -64
+             h36
+             a28 28 0 0 0 0 -56
+             h-36
+             a32 32 0 0 1 0 -64 Z"/>
+  </g>
+</svg>

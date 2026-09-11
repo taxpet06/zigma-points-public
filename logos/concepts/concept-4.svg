@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="tileGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F43F5E"/>
+      <stop offset="0.55" stop-color="#E11D48"/>
+      <stop offset="1" stop-color="#B81A3C"/>
+    </linearGradient>
+  </defs>
+
+  <g id="tile">
+    <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#tileGrad)"/>
+  </g>
+
+  <g id="mark" fill="#FFF5F6">
+    <!-- C: solid ring, outer r160 / inner r100 (stroke weight 60), centered (200,256).
+         Cap height 320 (top y=96, baseline y=416). Opening (mouth) on the right.
+         Outer boundary goes clockwise from top mouth-lip around to bottom mouth-lip;
+         inner boundary returns counter-clockwise -> constant-width stroke. -->
+    <path d="
+      M 200 96
+      A 160 160 0 1 0 312 350
+      L 264 318
+      A 100 100 0 1 1 264 194
+      L 312 162
+      A 160 160 0 0 0 200 96
+      Z"/>
+
+    <!-- P: same stroke weight 60, same cap height (top y=96, baseline y=416),
+         same baseline, matched rounded bowl radii.
+         Vertical stem x=308..368. Bowl = D-shaped ring on the right of the stem,
+         outer arc r=105 / inner arc r=45 about center (368,201). -->
+    <path d="
+      M 308 96
+      L 368 96
+      A 105 105 0 0 1 368 306
+      L 368 246
+      A 45 45 0 0 0 368 156
+      L 368 416
+      L 308 416
+      Z"/>
+  </g>
+</svg>
